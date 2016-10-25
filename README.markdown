@@ -27,6 +27,17 @@ $ ros use sbcl
 $ ros install fukamachi/sblint
 ```
 
+## Using with reviewdog
+
+[reviewdog](https://github.com/haya14busa/reviewdog) is an automated code review tool which provides a way to see review comments of diff before publishing it.
+
+```
+$ sblint | reviewdog -efm="%f:%l:%c: %m" -diff="git diff master"
+
+```
+
+cf. [reviewdog — A code review dog who keeps your codebase healthy – Medium](https://medium.com/@haya14busa/reviewdog-a-code-review-dog-who-keeps-your-codebase-healthy-d957c471938b#.tq51yfpy9)
+
 ## Author
 
 * Eitaro Fukamachi (e.arrows@gmail.com)
