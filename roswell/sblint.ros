@@ -55,7 +55,7 @@ exec ros -Q -- $0 "$@"
           (if (uiop:file-pathname-p target)
               (run-lint-file target)
               (run-lint-directory target))
-        (error (e)
+        (sblint:sblint-error (e)
           (print-error "~A" e))))))
 
 ;;; vim: set ft=lisp lisp:

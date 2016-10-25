@@ -9,6 +9,7 @@
                 #:*enable-logger*
                 #:do-log)
   (:import-from #:sblint/error
+                #:sblint-error
                 #:sblint-system-load-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
@@ -22,6 +23,7 @@
   (:export #:run-lint-file
            #:run-lint-asd
            #:run-lint-directory
+           #:sblint-error
            #:*enable-logger*))
 (in-package #:sblint)
 
