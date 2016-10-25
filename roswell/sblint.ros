@@ -1,0 +1,61 @@
+#|-*- mode:lisp -*-|#
+#| A linter for Common Lisp source code using SBCL
+exec ros -Q -- $0 "$@"
+|#
+#-sbcl
+(error "SBLint requires SBCL. Make sure it is installed with `ros install sbcl' and use it with `ros use sbcl'.")
+
+(progn ;;init forms
+  (ql:quickload '(#:sblint #:uiop) :silent t))
+
+(defpackage #:ros.script.sblint
+  (:use #:cl)
+  (:import-from #:sblint
+                #:run-lint-file
+                #:run-lint-directory)
+  (:import-from #:uiop
+                #:quit
+                #:directory-files
+                #:truename*
+                #:file-pathname-p))
+(in-package :ros.script.sblint)
+
+(defun print-error (format-control &rest format-arguments)
+  (fresh-line *error-output*)
+  (apply #'format *error-output* format-control format-arguments)
+  (fresh-line *error-output*)
+  (uiop:quit -1))
+
+(defun print-usage ()
+  (print-error
+   "Usage:
+    $ sblint # runs on all ASD files in current directory
+    $ sblint [directories or files...]"))
+
+(defun main (&rest argv)
+  (when (or (equal (first argv) "-h")
+            (equal (first argv) "--help"))
+    (print-usage))
+
+  (when (or (equal (first argv) "-v")
+            (equal (first argv) "--verbose"))
+    (setf sblint:*enable-logger* t)
+    (pop argv))
+
+  (unless argv
+    (setf argv
+          (uiop:directory-files *default-pathname-defaults* "*.asd")))
+
+  (dolist (arg argv)
+    (let ((target (uiop:truename* arg)))
+      (unless target
+        (print-error "No such file or directory: '~A'" arg))
+
+      (handler-case
+          (if (uiop:file-pathname-p target)
+              (run-lint-file target)
+              (run-lint-directory target))
+        (error (e)
+          (print-error "~A" e))))))
+
+;;; vim: set ft=lisp lisp:
