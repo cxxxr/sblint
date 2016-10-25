@@ -77,26 +77,38 @@
       (run-lint-asd file stream)))
 
   (let* ((errout *error-output*)
-         (*error-output* (make-string-output-stream)))
+         (*error-output* (make-string-output-stream))
+         (error-map (make-hash-table :test 'equalp)))
     (unless
         (handler-bind ((warning
                          (lambda (condition)
                            (let* ((*error-output* errout)
                                   (sb-int:*print-condition-references* nil)
                                   (context (sb-c::find-error-context nil))
-                                  (file (sb-c::compiler-error-context-file-name context))
-                                  (position (compiler-note-position
-                                             file
-                                             (compiler-source-path context))))
-                             (multiple-value-bind (line column)
-                                 (file-position-to-line-and-column file position)
-                               (format stream "~&~A:~A:~A: ~A~%"
-                                       (make-relative-pathname file)
-                                       line
-                                       column
-                                       condition))))))
-          (uiop:with-temporary-file (:pathname fasl :element-type '(unsigned-byte 8) :direction :output)
-            (compile-file file :output-file fasl :verbose nil :print nil)))
+                                  (file (and context
+                                             (sb-c::compiler-error-context-file-name context)))
+                                  (position (cond
+                                              (context (compiler-note-position
+                                                        file
+                                                        (compiler-source-path context)))
+                                              ((typep condition 'reader-error)
+                                               (let ((stream (stream-error-stream condition)))
+                                                 (file-position stream)))
+                                              (t nil))))
+                             (when (and position
+                                        (not (gethash (list file position (princ-to-string condition)) error-map)))
+                               (setf (gethash (list file position (princ-to-string condition)) error-map) t)
+                               (multiple-value-bind (line column)
+                                   (file-position-to-line-and-column file position)
+                                 (format stream "~&~A:~A:~A: ~A~%"
+                                         (make-relative-pathname file)
+                                         line
+                                         column
+                                         condition)))))))
+          (and (uiop:with-temporary-file (:pathname fasl :element-type '(unsigned-byte 8) :direction :output)
+                 (compile-file file :output-file fasl :verbose nil :print nil))
+               (let ((*standard-output* (make-broadcast-stream)))
+                 (load file :verbose nil :print nil))))
       (error 'sblint-compilation-error
              :file file
              :message (get-output-stream-string *error-output*)))))
