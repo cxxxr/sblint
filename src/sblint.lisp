@@ -18,8 +18,7 @@
                 #:file-exists-p
                 #:directory-exists-p
                 #:subdirectories
-                #:directory-files
-                #:with-temporary-file)
+                #:directory-files)
   (:export #:run-lint-file
            #:run-lint-asd
            #:run-lint-directory
@@ -107,10 +106,8 @@
                                          line
                                          column
                                          condition)))))))
-          (and (uiop:with-temporary-file (:pathname fasl :element-type '(unsigned-byte 8) :direction :output)
-                 (compile-file file :output-file fasl :verbose nil :print nil))
-               (let ((*standard-output* (make-broadcast-stream)))
-                 (load file :verbose nil :print nil))))
+          (let ((*standard-output* (make-broadcast-stream)))
+            (load file :verbose nil :print nil)))
       (error 'sblint-compilation-error
              :file file
              :message (get-output-stream-string *error-output*)))))
