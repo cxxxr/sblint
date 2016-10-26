@@ -97,34 +97,38 @@
   (let* ((errout *error-output*)
          (*error-output* error)
          (error-map (make-hash-table :test 'equalp)))
-    (handler-bind ((warning
-                     (lambda (condition)
-                       (let* ((*error-output* errout)
-                              (sb-int:*print-condition-references* nil)
-                              (context (sb-c::find-error-context nil))
-                              (file (and context
-                                         (sb-c::compiler-error-context-file-name context)))
-                              (position (cond
-                                          (context (compiler-note-position
-                                                    file
-                                                    (compiler-source-path context)))
-                                          ((typep condition 'reader-error)
-                                           (let ((stream (stream-error-stream condition)))
-                                             (file-position stream)))
-                                          (t nil))))
-                         (when (and position
-                                    (not (gethash (list file position (princ-to-string condition)) error-map)))
-                           (setf (gethash (list file position (princ-to-string condition)) error-map) t)
-                           (multiple-value-bind (line column)
-                               (file-position-to-line-and-column file position)
-                             (let ((*print-pretty* nil))
-                               (format stream "~&~A:~A:~A: ~A: ~A~%"
-                                       (make-relative-pathname file)
-                                       line
-                                       column
-                                       (condition-name-to-print condition)
-                                       condition))))))))
-      (funcall fn))))
+    (flet ((handle-condition (condition)
+             (let* ((*error-output* errout)
+                    (sb-int:*print-condition-references* nil)
+                    (context (sb-c::find-error-context nil))
+                    (file (and context
+                               (sb-c::compiler-error-context-file-name context)))
+                    (position (cond
+                                (context (compiler-note-position
+                                          file
+                                          (compiler-source-path context)))
+                                ((typep condition 'reader-error)
+                                 (let ((stream (stream-error-stream condition)))
+                                   (file-position stream)))
+                                (t nil))))
+               (when (and position
+                          (not (gethash (list file position (princ-to-string condition)) error-map)))
+                 (setf (gethash (list file position (princ-to-string condition)) error-map) t)
+                 (multiple-value-bind (line column)
+                     (file-position-to-line-and-column file position)
+                   (let ((*print-pretty* nil))
+                     (format stream "~&~A:~A:~A: ~A: ~A~%"
+                             (make-relative-pathname file)
+                             line
+                             column
+                             (condition-name-to-print condition)
+                             condition)))))))
+      (handler-bind ((sb-c:fatal-compiler-error #'handle-condition)
+                     (sb-c:compiler-error #'handle-condition)
+                     (sb-ext:compiler-note #'handle-condition)
+                     (error #'handle-condition)
+                     (warning #'handle-condition))
+        (funcall fn)))))
 
 (defun run-lint-directory (directory &optional (stream *standard-output*))
   (do-log :info "Lint directory '~A'" (make-relative-pathname directory))
