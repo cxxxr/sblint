@@ -13,7 +13,8 @@
                 #:sblint-system-load-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
-                #:make-relative-pathname)
+                #:make-relative-pathname
+                #:condition-name-to-print)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p
@@ -109,10 +110,11 @@
                            (multiple-value-bind (line column)
                                (file-position-to-line-and-column file position)
                              (let ((*print-pretty* nil))
-                               (format stream "~&~A:~A:~A: ~A~%"
+                               (format stream "~&~A:~A:~A: ~A: ~A~%"
                                        (make-relative-pathname file)
                                        line
                                        column
+                                       (condition-name-to-print condition)
                                        condition))))))))
       (funcall fn))))
 

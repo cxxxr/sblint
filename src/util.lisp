@@ -1,7 +1,8 @@
 (in-package #:cl-user)
 (defpackage #:sblint/util
   (:use #:cl)
-  (:export #:make-relative-pathname))
+  (:export #:make-relative-pathname
+           #:condition-name-to-print))
 (in-package #:sblint/util)
 
 (defun make-relative-pathname (path &optional (base *default-pathname-defaults*))
@@ -44,3 +45,10 @@
                                    :directory
                                    (cons :relative
                                          (make-list (length base-dir) :initial-element :up))))))))))
+
+(defun condition-name-to-print (condition)
+  (typecase condition
+    (style-warning
+     "style-warning")
+    (otherwise
+     (string-downcase condition))))
