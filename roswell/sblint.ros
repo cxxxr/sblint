@@ -43,8 +43,7 @@ exec ros -Q -- $0 "$@"
     (pop argv))
 
   (unless argv
-    (setf argv
-          (uiop:directory-files *default-pathname-defaults* "*.asd")))
+    (setf argv (list *default-pathname-defaults*)))
 
   (dolist (arg argv)
     (let ((target (uiop:truename* arg)))

@@ -97,3 +97,22 @@
         (let ((system (asdf:find-system name nil)))
           (unless system
             (warn "Dependency ~S not found. Ignored." name)))))))
+
+(defun directory-asd-files (&optional (directory *default-pathname-defaults*))
+  "List ASD files in the DIRECTORY and sort them to load."
+  (let* ((asd-files (uiop:directory-files directory "*.asd"))
+         (system-names (mapcar #'pathname-name asd-files))
+         (points (make-hash-table :test 'equal)))
+    (dolist (file asd-files)
+      (let ((*standard-output* (make-broadcast-stream))
+            (*error-output* (make-broadcast-stream)))
+        (load file :verbose nil :print nil))
+      (let ((deps (all-required-systems (pathname-name file))))
+        (setf (gethash (pathname-name file) points)
+              (count-if (lambda (name)
+                          (member name system-names :test #'string=))
+                        deps))))
+    (sort asd-files
+          (lambda (a b)
+            (< (gethash (pathname-name a) points)
+               (gethash (pathname-name b) points))))))

@@ -15,7 +15,8 @@
   (:import-from #:sblint/util
                 #:make-relative-pathname
                 #:condition-name-to-print
-                #:install-required-systems)
+                #:install-required-systems
+                #:directory-asd-files)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p
@@ -126,7 +127,7 @@
 
   (dolist (dir (uiop:subdirectories directory))
     (run-lint-directory dir stream))
-  (dolist (file (uiop:directory-files directory))
+  (dolist (file (directory-asd-files directory))
     (run-lint-file file stream))
 
   (values))
