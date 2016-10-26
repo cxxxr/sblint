@@ -103,11 +103,12 @@
                            (setf (gethash (list file position (princ-to-string condition)) error-map) t)
                            (multiple-value-bind (line column)
                                (file-position-to-line-and-column file position)
-                             (format stream "~&~A:~A:~A: ~A~%"
-                                     (make-relative-pathname file)
-                                     line
-                                     column
-                                     condition)))))))
+                             (let ((*print-pretty* nil))
+                               (format stream "~&~A:~A:~A: ~A~%"
+                                       (make-relative-pathname file)
+                                       line
+                                       column
+                                       condition))))))))
       (funcall fn))))
 
 (defun run-lint-directory (directory &optional (stream *standard-output*))
