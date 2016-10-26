@@ -69,7 +69,8 @@
                        (let ((*standard-output* (make-broadcast-stream))
                              (*error-output* (make-broadcast-stream))
                              (*terminal-io* (make-broadcast-stream)))
-                         (asdf:oos 'asdf:load-op system :force t :verbose nil)))
+                         (handler-bind ((uiop:compile-file-error (lambda (e) (declare (ignore e)) (continue))))
+                           (asdf:oos 'asdf:load-op system :force t :verbose nil))))
                      stream)))
 
     (values)))
