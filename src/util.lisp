@@ -83,8 +83,8 @@
 
 (defun install-required-systems (&rest systems)
   (let ((required (apply #'all-required-systems systems)))
+    (do-log :info "Installing ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}" (length required) required)
     (dolist (name required)
-      (do-log :info "Installing ~S" name)
       (let ((*standard-output* (make-broadcast-stream))
             (*error-output* (make-broadcast-stream)))
         #+quicklisp
