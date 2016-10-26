@@ -10,7 +10,6 @@
                 #:do-log)
   (:import-from #:sblint/error
                 #:sblint-error
-                #:sblint-system-load-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
                 #:make-relative-pathname
@@ -60,18 +59,13 @@
         (mapc (lambda (name)
                 (asdf:load-system name :verbose nil)) (all-required-systems (asdf:component-name system))))
 
-      (handler-bind ((error
-                       (lambda (e)
-                         (error 'sblint-system-load-error
-                                :system system
-                                :real-error e))))
-        (run-lint-fn (lambda ()
-                       (let ((*standard-output* (make-broadcast-stream))
-                             (*error-output* (make-broadcast-stream))
-                             (*terminal-io* (make-broadcast-stream)))
-                         (handler-bind ((uiop:compile-file-error (lambda (e) (declare (ignore e)) (continue))))
-                           (asdf:oos 'asdf:load-op system :force t :verbose nil))))
-                     stream)))
+      (run-lint-fn (lambda ()
+                     (let ((*standard-output* (make-broadcast-stream))
+                                  (*error-output* (make-broadcast-stream))
+                                  (*terminal-io* (make-two-way-stream *standard-input* (make-broadcast-stream))))
+                       (handler-bind ((uiop:compile-file-error (lambda (e) (declare (ignore e)) (continue))))
+                         (asdf:oos 'asdf:load-op system :force t :verbose nil))))
+                   stream))
 
     (values)))
 
@@ -118,12 +112,14 @@
                  (multiple-value-bind (line column)
                      (file-position-to-line-and-column file position)
                    (let ((*print-pretty* nil))
-                     (format stream "~&~A:~A:~A: ~A: ~A~%"
-                             (make-relative-pathname file)
-                             line
-                             column
-                             (condition-name-to-print condition)
-                             condition)))))))
+                     (handler-case
+                         (format stream "~&~A:~A:~A: ~A: ~A~%"
+                                 (make-relative-pathname file)
+                                 line
+                                 column
+                                 (condition-name-to-print condition)
+                                 condition)
+                       (sb-int:simple-stream-error () (continue)))))))))
       (handler-bind ((sb-c:fatal-compiler-error #'handle-condition)
                      (sb-c:compiler-error #'handle-condition)
                      (sb-ext:compiler-note #'handle-condition)
