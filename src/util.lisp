@@ -1,8 +1,13 @@
 (in-package #:cl-user)
 (defpackage #:sblint/util
   (:use #:cl)
+  (:import-from #:sblint/error
+                #:sblint-system-installation-error)
+  (:import-from #:sblint/logger
+                #:do-log)
   (:export #:make-relative-pathname
-           #:condition-name-to-print))
+           #:condition-name-to-print
+           #:install-required-systems))
 (in-package #:sblint/util)
 
 (defun make-relative-pathname (path &optional (base *default-pathname-defaults*))
@@ -52,3 +57,43 @@
      "style-warning")
     (otherwise
      (string-downcase condition))))
+
+(defun all-required-systems (&rest systems)
+  (labels ((sbcl-contrib-p (name)
+             (let ((name (princ-to-string name)))
+               (and (<= 3 (length name))
+                    (string-equal name "sb-" :end1 3))))
+           (system-dependencies (system-name)
+             (unless (or (string-equal system-name "asdf")
+                         (sbcl-contrib-p system-name))
+               (let ((system (let ((*standard-output* (make-broadcast-stream))
+                                   (*error-output* (make-broadcast-stream)))
+                               (asdf:find-system system-name nil))))
+                 (when system
+                   (cons system-name
+                         (mapcan #'system-dependencies (copy-list (asdf::component-sideway-dependencies system)))))))))
+    (remove-if (lambda (name)
+                 (member name systems :test #'string=))
+               (mapcar #'string-downcase
+                       (delete-duplicates (mapcan #'system-dependencies systems)
+                                          :from-end t)))))
+
+(defun install-required-systems (&rest systems)
+  (let ((required (apply #'all-required-systems systems)))
+    (dolist (name required)
+      (do-log :info "Installing ~S" name)
+      (let ((*standard-output* (make-broadcast-stream))
+            (*error-output* (make-broadcast-stream)))
+        #+quicklisp
+        (handler-case
+            (let ((system (ql::find-system name)))
+              (if system
+                  (ql-dist:ensure-installed system)
+                  (or (asdf:find-system name nil)
+                      (warn "Dependency ~S not found. Ignored." name))))
+          (error (e)
+            (error 'sblint-system-installation-error :name name :real-error e)))
+        #-quicklisp
+        (let ((system (asdf:find-system name nil)))
+          (unless system
+            (warn "Dependency ~S not found. Ignored." name)))))))

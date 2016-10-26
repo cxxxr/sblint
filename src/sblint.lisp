@@ -14,7 +14,8 @@
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
                 #:make-relative-pathname
-                #:condition-name-to-print)
+                #:condition-name-to-print
+                #:install-required-systems)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p
@@ -49,8 +50,7 @@
                file))
 
       ;; Ensure dependencies are installed
-      #+quicklisp
-      (ql:quickload (asdf:component-name system) :silent t)
+      (install-required-systems (asdf:component-name system))
 
       (handler-bind ((error
                        (lambda (e)

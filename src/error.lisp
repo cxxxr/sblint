@@ -3,7 +3,8 @@
   (:use #:cl)
   (:export #:sblint-error
            #:sblint-system-load-error
-           #:sblint-compilation-error))
+           #:sblint-compilation-error
+           #:sblint-system-installation-error))
 (in-package #:sblint/error)
 
 (define-condition sblint-error (error) ())
@@ -26,3 +27,13 @@
                (format stream "[ERROR] Compilation of '~A' has failed:~%~A"
                        file
                        message)))))
+
+(define-condition sblint-system-installation-error (sblint-error)
+  ((real-error :initarg :real-error)
+   (name :initarg :name))
+  (:report (lambda (condition stream)
+             (with-slots (real-error name) condition
+               (format stream "[ERROR] System ~S could not be installed with ~A:~%  ~A"
+                       name
+                       (type-of real-error)
+                       real-error)))))
