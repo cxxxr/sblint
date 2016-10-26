@@ -58,7 +58,8 @@
                                 :real-error e))))
         (run-lint-fn (lambda ()
                        (let ((*standard-output* (make-broadcast-stream))
-                             (*error-output* (make-broadcast-stream)))
+                             (*error-output* (make-broadcast-stream))
+                             (*terminal-io* (make-broadcast-stream)))
                          (asdf:oos 'asdf:load-op system :force t :verbose nil)))
                      stream)))
 
