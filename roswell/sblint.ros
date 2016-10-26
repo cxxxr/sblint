@@ -55,6 +55,8 @@ exec ros -Q -- $0 "$@"
               (run-lint-file target)
               (run-lint-directory target))
         (sblint:sblint-error (e)
-          (print-error "~A" e))))))
+          (print-error "~A" e))
+        (error (e)
+          (print-error "[ERROR] ~A" e))))))
 
 ;;; vim: set ft=lisp lisp:
