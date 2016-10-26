@@ -63,9 +63,9 @@
 
 (defun all-required-systems (&rest systems)
   (labels ((sbcl-contrib-p (name)
-             (let ((name (princ-to-string name)))
-               (and (<= 3 (length name))
-                    (string-equal name "sb-" :end1 3))))
+             (declare (type simple-string name))
+             (and (<= 3 (length name))
+                  (string-equal name "sb-" :end1 3)))
            (system-dependencies (system-name)
              (unless (or (string-equal system-name "asdf")
                          (sbcl-contrib-p system-name))
@@ -74,12 +74,13 @@
                                (asdf:find-system system-name nil))))
                  (when system
                    (cons system-name
-                         (mapcan #'system-dependencies (copy-list (asdf::component-sideway-dependencies system)))))))))
-    (remove-if (lambda (name)
-                 (member name systems :test #'string=))
-               (mapcar #'string-downcase
-                       (delete-duplicates (mapcan #'system-dependencies systems)
-                                          :from-end t)))))
+                         (loop for dep in (asdf::component-sideway-dependencies system)
+                               append (system-dependencies (string-downcase dep)))))))))
+    (delete-if (lambda (dep)
+                 (find dep systems :test #'string=))
+               (delete-duplicates (mapcan #'system-dependencies systems)
+                                  :test #'string=
+                                  :from-end t))))
 
 (defun install-required-systems (&rest systems)
   (let ((required (apply #'all-required-systems systems)))
@@ -105,17 +106,31 @@
   "List ASD files in the DIRECTORY and sort them to load."
   (let* ((asd-files (uiop:directory-files directory "*.asd"))
          (system-names (mapcar #'pathname-name asd-files))
-         (points (make-hash-table :test 'equal)))
+         (deps-map (make-hash-table :test 'equal)))
     (dolist (file asd-files)
       (let ((*standard-output* (make-broadcast-stream))
             (*error-output* (make-broadcast-stream)))
         (load file :verbose nil :print nil))
-      (let ((deps (all-required-systems (pathname-name file))))
-        (setf (gethash (pathname-name file) points)
-              (count-if (lambda (name)
-                          (member name system-names :test #'string=))
-                        deps))))
-    (sort asd-files
-          (lambda (a b)
-            (< (gethash (pathname-name a) points)
-               (gethash (pathname-name b) points))))))
+      (let* ((deps (all-required-systems (pathname-name file)))
+             (deps (delete-if-not (lambda (name)
+                                    (find name system-names :test #'string=))
+                                  deps)))
+        (setf (gethash (pathname-name file) deps-map) deps)))
+    (labels ((to-load-systems (name)
+               (cons name
+                     (mapcan #'to-load-systems (gethash name deps-map)))))
+      (let ((load-system-names
+              (nreverse
+               (delete-duplicates
+                (mapcan (lambda (file)
+                          (let ((*standard-output* (make-broadcast-stream))
+                                (*error-output* (make-broadcast-stream)))
+                            (load file :verbose nil :print nil))
+                          (to-load-systems (pathname-name file)))
+                        asd-files)
+                :test #'string=))))
+        (mapcar (lambda (name)
+                  (make-pathname :name name
+                                 :type "asd"
+                                 :directory (pathname-directory directory)))
+                load-system-names)))))
