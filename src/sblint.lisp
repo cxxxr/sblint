@@ -36,8 +36,12 @@
     (unless (equal (pathname-type file) "asd")
       (error "Not ASD file: '~A'" file))
 
-    (load file :verbose nil :print nil)
-    (let ((system (asdf:find-system (pathname-name file) nil)))
+    (let ((*standard-output* (make-broadcast-stream))
+          (*error-output* (make-broadcast-stream)))
+      (load file :verbose nil :print nil))
+    (let ((system (let ((*standard-output* (make-broadcast-stream))
+                        (*error-output* (make-broadcast-stream)))
+                    (asdf:find-system (pathname-name file) nil))))
       (unless system
         (error "System '~A' does not exist in '~A'."
                (pathname-name file)
@@ -45,7 +49,7 @@
 
       ;; Ensure dependencies are installed
       #+quicklisp
-      (ql:quickload (pathname-name file) :silent t)
+      (ql:quickload (asdf:component-name system) :silent t)
 
       (handler-bind ((error
                        (lambda (e)
