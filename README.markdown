@@ -33,10 +33,31 @@ $ ros install fukamachi/sblint
 
 ```
 $ sblint | reviewdog -efm="%f:%l:%c: %m" -diff="git diff master"
-
 ```
 
 cf. [reviewdog — A code review dog who keeps your codebase healthy – Medium](https://medium.com/@haya14busa/reviewdog-a-code-review-dog-who-keeps-your-codebase-healthy-d957c471938b#.tq51yfpy9)
+
+## Run before 'git commit'
+
+It can be done by using git-hook's pre-commit. Just add the following script to `~/.git/hooks/pre-commit`:
+
+```
+#!/bin/sh
+
+# Copy this file to ./.git/hooks/pre-commit
+
+if [ -z "$(which sblint)" ]; then
+    echo "WARNING! sblint not found. Given up to run it."
+    exit 0
+fi
+
+error_count=$(sblint | wc -l | tr -d '[[:space:]]')
+
+if [ "$error_count" -gt "0" ]; then
+    echo "Failed to commit because $error_count errors are found by SBLint."
+    exit 1
+fi
+```
 
 ## Author
 
