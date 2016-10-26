@@ -35,7 +35,9 @@
                (cond
                  ((and (null base-dir)
                        (null path-dir))
-                  (return (file-namestring path)))
+                  (return (if (uiop:file-pathname-p path)
+                              (pathname (file-namestring path))
+                              #P"./")))
                  ((null base-dir)
                   (return (make-pathname
                            :name (pathname-name path)
