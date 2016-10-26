@@ -1,3 +1,4 @@
+#!/bin/sh
 #|-*- mode:lisp -*-|#
 #| A linter for Common Lisp source code using SBCL
 exec ros -Q -- $0 "$@"
