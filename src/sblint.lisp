@@ -43,29 +43,20 @@
                (pathname-name file)
                file))
 
+      ;; Ensure dependencies are installed
+      #+quicklisp
+      (ql:quickload (pathname-name file) :silent t)
+
       (handler-bind ((error
                        (lambda (e)
                          (error 'sblint-system-load-error
                                 :system system
                                 :real-error e))))
-        (let ((*standard-output* (make-broadcast-stream))
-              (*error-output* (make-broadcast-stream)))
-          #+quicklisp
-          (ql:quickload (pathname-name file) :silent t)
-          #-quicklisp
-          (asdf:load-system (pathname-name file) :verbose nil)))
-
-      (labels ((component-cl-files (component)
-                 (mapcan (lambda (child)
-                           (typecase child
-                             (asdf:parent-component
-                              (component-cl-files child))
-                             (asdf:cl-source-file
-                              (list child))
-                             (otherwise '())))
-                         (asdf:component-children component))))
-        (dolist (file-component (component-cl-files system))
-          (run-lint-file (asdf:component-pathname file-component) stream))))
+        (run-lint-fn (lambda ()
+                       (let ((*standard-output* (make-broadcast-stream))
+                             (*error-output* (make-broadcast-stream)))
+                         (asdf:oos 'asdf:load-op system :force t :verbose nil)))
+                     stream)))
 
     (values)))
 
@@ -79,40 +70,45 @@
     (return-from run-lint-file
       (run-lint-asd file stream)))
 
-  (let* ((errout *error-output*)
-         (*error-output* (make-string-output-stream))
-         (error-map (make-hash-table :test 'equalp)))
-    (unless
-        (handler-bind ((warning
-                         (lambda (condition)
-                           (let* ((*error-output* errout)
-                                  (sb-int:*print-condition-references* nil)
-                                  (context (sb-c::find-error-context nil))
-                                  (file (and context
-                                             (sb-c::compiler-error-context-file-name context)))
-                                  (position (cond
-                                              (context (compiler-note-position
-                                                        file
-                                                        (compiler-source-path context)))
-                                              ((typep condition 'reader-error)
-                                               (let ((stream (stream-error-stream condition)))
-                                                 (file-position stream)))
-                                              (t nil))))
-                             (when (and position
-                                        (not (gethash (list file position (princ-to-string condition)) error-map)))
-                               (setf (gethash (list file position (princ-to-string condition)) error-map) t)
-                               (multiple-value-bind (line column)
-                                   (file-position-to-line-and-column file position)
-                                 (format stream "~&~A:~A:~A: ~A~%"
-                                         (make-relative-pathname file)
-                                         line
-                                         column
-                                         condition)))))))
-          (let ((*standard-output* (make-broadcast-stream)))
-            (load file :verbose nil :print nil)))
+  (let ((err (make-broadcast-stream)))
+    (unless (run-lint-fn (lambda ()
+                           (load file :verbose nil :print nil))
+                         stream
+                         err)
       (error 'sblint-compilation-error
              :file file
-             :message (get-output-stream-string *error-output*)))))
+             :message (get-output-stream-string err)))))
+
+(defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*))
+  (let* ((errout *error-output*)
+         (*error-output* error)
+         (error-map (make-hash-table :test 'equalp)))
+    (handler-bind ((warning
+                     (lambda (condition)
+                       (let* ((*error-output* errout)
+                              (sb-int:*print-condition-references* nil)
+                              (context (sb-c::find-error-context nil))
+                              (file (and context
+                                         (sb-c::compiler-error-context-file-name context)))
+                              (position (cond
+                                          (context (compiler-note-position
+                                                    file
+                                                    (compiler-source-path context)))
+                                          ((typep condition 'reader-error)
+                                           (let ((stream (stream-error-stream condition)))
+                                             (file-position stream)))
+                                          (t nil))))
+                         (when (and position
+                                    (not (gethash (list file position (princ-to-string condition)) error-map)))
+                           (setf (gethash (list file position (princ-to-string condition)) error-map) t)
+                           (multiple-value-bind (line column)
+                               (file-position-to-line-and-column file position)
+                             (format stream "~&~A:~A:~A: ~A~%"
+                                     (make-relative-pathname file)
+                                     line
+                                     column
+                                     condition)))))))
+      (funcall fn))))
 
 (defun run-lint-directory (directory &optional (stream *standard-output*))
   (do-log :info "Lint directory '~A'" (make-relative-pathname directory))
