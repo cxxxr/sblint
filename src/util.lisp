@@ -56,7 +56,7 @@
     (style-warning
      "style-warning")
     (otherwise
-     (string-downcase condition))))
+     (string-downcase (type-of condition)))))
 
 (defun all-required-systems (&rest systems)
   (labels ((sbcl-contrib-p (name)
