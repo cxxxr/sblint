@@ -133,7 +133,8 @@
     (error "Directory does not exist: '~A'" directory))
 
   (dolist (dir (uiop:subdirectories directory))
-    (run-lint-directory dir stream))
+    (let ((*enable-logger* nil))
+      (run-lint-directory dir stream)))
   (dolist (file (directory-asd-files directory))
     (run-lint-file file stream))
 
