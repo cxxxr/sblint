@@ -16,6 +16,7 @@
                 #:make-relative-pathname
                 #:condition-name-to-print
                 #:install-required-systems
+                #:all-required-systems
                 #:directory-asd-files)
   (:import-from #:uiop
                 #:file-exists-p
@@ -52,6 +53,12 @@
 
       ;; Ensure dependencies are installed
       (install-required-systems (asdf:component-name system))
+      ;; Ensure dependencies are loaded
+      (let ((*standard-output* (make-broadcast-stream))
+            (*error-output* (make-broadcast-stream))
+            (*terminal-io* (make-broadcast-stream)))
+        (mapc (lambda (name)
+                (asdf:load-system name :verbose nil)) (all-required-systems (asdf:component-name system))))
 
       (handler-bind ((error
                        (lambda (e)

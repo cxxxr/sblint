@@ -7,6 +7,7 @@
                 #:do-log)
   (:export #:make-relative-pathname
            #:condition-name-to-print
+           #:all-required-systems
            #:install-required-systems))
 (in-package #:sblint/util)
 
