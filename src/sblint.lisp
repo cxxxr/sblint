@@ -48,10 +48,12 @@
                          (error 'sblint-system-load-error
                                 :system system
                                 :real-error e))))
-        #+quicklisp
-        (ql:quickload (pathname-name file) :silent t)
-        #-quicklisp
-        (asdf:load-system (pathname-name file) :verbose nil))
+        (let ((*standard-output* (make-broadcast-stream))
+              (*error-output* (make-broadcast-stream)))
+          #+quicklisp
+          (ql:quickload (pathname-name file) :silent t)
+          #-quicklisp
+          (asdf:load-system (pathname-name file) :verbose nil)))
 
       (labels ((component-cl-files (component)
                  (mapcan (lambda (child)
