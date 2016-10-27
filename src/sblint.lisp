@@ -53,11 +53,15 @@
       ;; Ensure dependencies are installed
       (install-required-systems (asdf:component-name system))
       ;; Ensure dependencies are loaded
+      #+quicklisp
+      (ql:quickload (all-required-systems (asdf:component-name system)))
+      #-quicklisp
       (let ((*standard-output* (make-broadcast-stream))
             (*error-output* (make-broadcast-stream))
             (*terminal-io* (make-broadcast-stream)))
         (mapc (lambda (name)
-                (asdf:load-system name :verbose nil)) (all-required-systems (asdf:component-name system))))
+                (asdf:load-system name :verbose nil))
+              (all-required-systems (asdf:component-name system))))
 
       (run-lint-fn (lambda ()
                      (let ((*standard-output* (make-broadcast-stream))
