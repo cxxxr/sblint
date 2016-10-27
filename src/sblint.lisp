@@ -17,7 +17,8 @@
                 #:install-required-systems
                 #:all-required-systems
                 #:directory-asd-files
-                #:asdf-target-system-locator)
+                #:asdf-target-system-locator
+                #:load-asd)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p
@@ -40,15 +41,7 @@
     (unless (equal (pathname-type file) "asd")
       (error "Not ASD file: '~A'" file))
 
-    ;; Ensure dependencies are installed
-    ;; This must be done before asdf:find-system
-    ;; because defsystem may require another system like PROVE-ASDF.
-    #+quicklisp
-    (install-required-systems (pathname-name file))
-
-    (let ((*standard-output* (make-broadcast-stream))
-          (*error-output* (make-broadcast-stream)))
-      (load file :verbose nil :print nil))
+    (load-asd file)
     (let* ((asdf:*system-definition-search-functions*
              (cons (asdf-target-system-locator (pathname-name file))
                    asdf:*system-definition-search-functions*))
@@ -59,6 +52,10 @@
         (error "System '~A' does not exist in '~A'."
                (pathname-name file)
                file))
+
+      ;; Ensure dependencies are installed
+      #+quicklisp
+      (install-required-systems (pathname-name file))
 
       ;; Ensure dependencies are loaded
       #+quicklisp

@@ -10,7 +10,8 @@
            #:all-required-systems
            #:install-required-systems
            #:directory-asd-files
-           #:asdf-target-system-locator))
+           #:asdf-target-system-locator
+           #:load-asd))
 (in-package #:sblint/util)
 
 (defun make-relative-pathname (path &optional (base *default-pathname-defaults*))
@@ -128,9 +129,7 @@
               (nreverse
                (delete-duplicates
                 (mapcan (lambda (file)
-                          (let ((*standard-output* (make-broadcast-stream))
-                                (*error-output* (make-broadcast-stream)))
-                            (load file :verbose nil :print nil))
+                          (load-asd file)
                           (to-load-systems (pathname-name file)))
                         asd-files)
                 :test #'string=))))
@@ -145,3 +144,17 @@
     (when (and (string= name system-name)
                (asdf:system-registered-p system-name))
       (cdr (asdf:system-registered-p system-name)))))
+
+(defun load-asd (file)
+  (assert (string= (pathname-type file) "asd"))
+
+  (let ((*standard-output* (make-broadcast-stream))
+        (*error-output* (make-broadcast-stream)))
+    #+quicklisp
+    (handler-case
+        (load file :verbose nil :print nil)
+      (asdf:missing-component (e)
+        (ql:quickload (asdf/find-system:missing-requires e) :silent t)
+        (load file :verbose nil :print nil)))
+    #-quicklisp
+    (load file :verbose nil :print nil)))
