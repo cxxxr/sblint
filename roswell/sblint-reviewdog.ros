@@ -45,10 +45,32 @@ exec ros -Q -L sbcl-bin -- $0 "$@"
                   :type (pathname-type script)
                   :directory (pathname-directory script)))
          (reviewdog (ensure-reviewdog-installed))
-         (command (format nil "ros ~A | ~A -efm=\"%f:%l:%c: %m\" -diff=\"git diff master\"~:[~;~:* -ci=~A~]"
-                          sblint
-                          reviewdog
-                          (ci-service))))
-    (format *error-output* "~&Command: ~A~%" command)
-    (ros:exec (list "sh" "-c" command))))
+         (ci-service (ci-service)))
+    (multiple-value-bind (r w) (sb-posix:pipe)
+      (let ((sblint-proc
+              (sb-ext:run-program "/bin/sh" (list (namestring sblint))
+                                  :wait nil
+                                  :output
+                                  (sb-sys:make-fd-stream w :input nil :output t
+                                                           :element-type 'character
+                                                           :buffering :full
+                                                           :dual-channel-p t
+                                                           :external-format :utf-8)
+                                  :error *error-output*))
+            (reviewdog-proc
+              (sb-ext:run-program reviewdog (list "-efm=\"%f:%l:%c: %m\"" "-diff=\"git diff master\""
+                                                  (and ci-service
+                                                       (format nil "-ci=~A" ci-service)))
+                                  :wait nil
+                                  :input
+                                  (sb-sys:make-fd-stream r :input t :output nil
+                                                           :element-type 'character
+                                                           :buffering :full
+                                                           :dual-channel-p t
+                                                           :external-format :utf-8)
+                                  :output t
+                                  :error *error-output*)))
+        (sb-ext:process-wait sblint-proc)
+        (sb-posix:close w)
+        (sb-ext:process-wait reviewdog-proc)))))
 ;;; vim: set ft=lisp lisp:
