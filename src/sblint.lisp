@@ -54,7 +54,9 @@
       (install-required-systems (asdf:component-name system))
       ;; Ensure dependencies are loaded
       #+quicklisp
-      (ql:quickload (all-required-systems (asdf:component-name system)))
+      (let ((dependencies (all-required-systems (asdf:component-name system))))
+        (when dependencies
+          (ql:quickload dependencies)))
       #-quicklisp
       (let ((*standard-output* (make-broadcast-stream))
             (*error-output* (make-broadcast-stream))
