@@ -77,7 +77,10 @@
                    (cons system-name
                          (loop for dep in (append (asdf:system-depends-on system)
                                                   (asdf:system-defsystem-depends-on system))
-                               append (system-dependencies (string-downcase dep)))))))))
+                               append (system-dependencies
+                                       (if (consp dep)
+                                           (second dep)
+                                           (string-downcase dep))))))))))
     (delete-if (lambda (dep)
                  (find dep systems :test #'string=))
                (delete-duplicates (mapcan #'system-dependencies systems)
