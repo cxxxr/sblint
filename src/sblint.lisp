@@ -71,11 +71,16 @@
               (all-required-systems (asdf:component-name system))))
 
       (run-lint-fn (lambda ()
-                     (let ((*standard-output* (make-broadcast-stream))
-                                  (*error-output* (make-broadcast-stream))
-                                  (*terminal-io* (make-two-way-stream *standard-input* (make-broadcast-stream))))
-                       (handler-bind ((uiop:compile-file-error (lambda (e) (declare (ignore e)) (continue))))
-                         (asdf:oos 'asdf:load-op system :force t :verbose nil))))
+                     (handler-case
+                         (let ((*standard-output* (make-broadcast-stream))
+                               (*error-output* (make-broadcast-stream))
+                               (*terminal-io* (make-two-way-stream *standard-input* (make-broadcast-stream))))
+                           (asdf:oos 'asdf:load-op system :force t :verbose nil))
+                       ((or asdf:compile-error
+                         #+asdf3 uiop:compile-file-error)
+                         ()
+                         (warn "Compilation failed in a system ~S."
+                               (asdf:component-name system)))))
                    stream))
 
     (values)))
