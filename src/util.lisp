@@ -8,7 +8,8 @@
   (:export #:make-relative-pathname
            #:condition-name-to-print
            #:all-required-systems
-           #:install-required-systems))
+           #:install-required-systems
+           #:directory-asd-files))
 (in-package #:sblint/util)
 
 (defun make-relative-pathname (path &optional (base *default-pathname-defaults*))
