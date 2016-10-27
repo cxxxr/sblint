@@ -16,7 +16,8 @@
                 #:condition-name-to-print
                 #:install-required-systems
                 #:all-required-systems
-                #:directory-asd-files)
+                #:directory-asd-files
+                #:asdf-target-system-locator)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p
@@ -48,9 +49,12 @@
     (let ((*standard-output* (make-broadcast-stream))
           (*error-output* (make-broadcast-stream)))
       (load file :verbose nil :print nil))
-    (let ((system (let ((*standard-output* (make-broadcast-stream))
-                        (*error-output* (make-broadcast-stream)))
-                    (asdf:find-system (pathname-name file) nil))))
+    (let* ((asdf:*system-definition-search-functions*
+             (cons (asdf-target-system-locator (pathname-name file))
+                   asdf:*system-definition-search-functions*))
+           (system (let ((*standard-output* (make-broadcast-stream))
+                         (*error-output* (make-broadcast-stream)))
+                     (asdf:find-system (pathname-name file) nil))))
       (unless system
         (error "System '~A' does not exist in '~A'."
                (pathname-name file)
@@ -146,7 +150,8 @@
   (dolist (dir (uiop:subdirectories directory))
     (let ((*enable-logger* nil))
       (run-lint-directory dir stream)))
-  (dolist (file (directory-asd-files directory))
-    (run-lint-file file stream))
+  (let ((asdf:*central-registry* (cons directory asdf:*central-registry*)))
+    (dolist (file (directory-asd-files directory))
+      (run-lint-file file stream)))
 
   (values))

@@ -9,7 +9,8 @@
            #:condition-name-to-print
            #:all-required-systems
            #:install-required-systems
-           #:directory-asd-files))
+           #:directory-asd-files
+           #:asdf-target-system-locator))
 (in-package #:sblint/util)
 
 (defun make-relative-pathname (path &optional (base *default-pathname-defaults*))
@@ -138,3 +139,9 @@
                                  :type "asd"
                                  :directory (pathname-directory directory)))
                 load-system-names)))))
+
+(defun asdf-target-system-locator (system-name)
+  (lambda (name)
+    (when (and (string= name system-name)
+               (asdf:system-registered-p system-name))
+      (cdr (asdf:system-registered-p system-name)))))
