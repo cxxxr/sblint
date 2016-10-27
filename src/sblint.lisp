@@ -64,7 +64,7 @@
       #+quicklisp
       (let ((dependencies (all-required-systems (asdf:component-name system))))
         (when dependencies
-          (ql:quickload dependencies)))
+          (ql:quickload dependencies :silent t)))
       #-quicklisp
       (let ((*standard-output* (make-broadcast-stream))
             (*error-output* (make-broadcast-stream))
