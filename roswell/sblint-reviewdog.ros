@@ -1,0 +1,55 @@
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -L sbcl-bin -- $0 "$@"
+|#
+
+(defpackage #:ros.script.sblint-reviewdog
+  (:use #:cl))
+(in-package :ros.script.sblint-reviewdog)
+
+(defvar *reviewdog-version* "0.9.0")
+
+(defun ensure-reviewdog-installed ()
+  (let ((reviewdog (asdf:system-relative-pathname :sblint #P"reviewdog")))
+    (or (probe-file reviewdog)
+        (progn
+          (ql-http:fetch
+           (format nil "https://github.com/haya14busa/reviewdog/releases/download/~A/reviewdog~A"
+                   *reviewdog-version*
+                   #+darwin
+                   (format nil "_darwin_~A" #+x86-64 "amd64" #-x86-64 "386")
+                   #+linux
+                   (format nil "_linux_~A" #+x86-64 "amd64" #-x86-64 "386")
+                   #-(or darwin linux)
+                   (error "Supports only Linux and Mac."))
+           reviewdog)
+          (sb-posix:chmod reviewdog #o755)
+          reviewdog))))
+
+(defun ci-service ()
+  (cond
+    ((ros:getenv "CIRCLE_PR_NUMBER")
+     "circle-ci")
+    ((ros:getenv "TRAVIS_PULL_REQUEST")
+     "travis")
+    ((ros:getenv "DRONE_PULL_REQUEST")
+     "droneio")
+    ((ros:getenv "CI_PULL_REQUEST")
+     "common")))
+
+(defun main (&rest argv)
+  (declare (ignore argv))
+  (when (ros:getenv "REVIEWDOG")
+    (let* ((script (or *load-pathname* *compile-file-pathname*))
+           (sblint (make-pathname
+                    :name "sblint"
+                    :type (pathname-type script)
+                    :directory (pathname-directory script)))
+           (reviewdog (ensure-reviewdog-installed)))
+      (ros:exec
+       (list "sh" "-c"
+             (format nil "ros ~A | ~A -efm=\"%f:%l:%c: %m\" -diff=\"git diff master\"~:[~;~:* -ci=~A~]"
+                     sblint
+                     reviewdog
+                     (ci-service)))))))
+;;; vim: set ft=lisp lisp:
