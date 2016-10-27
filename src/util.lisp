@@ -74,7 +74,8 @@
                                (asdf:find-system system-name nil))))
                  (when system
                    (cons system-name
-                         (loop for dep in (asdf::component-sideway-dependencies system)
+                         (loop for dep in (append (asdf:system-depends-on system)
+                                                  (asdf:system-defsystem-depends-on system))
                                append (system-dependencies (string-downcase dep)))))))))
     (delete-if (lambda (dep)
                  (find dep systems :test #'string=))
