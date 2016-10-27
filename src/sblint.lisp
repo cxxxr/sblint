@@ -39,6 +39,12 @@
     (unless (equal (pathname-type file) "asd")
       (error "Not ASD file: '~A'" file))
 
+    ;; Ensure dependencies are installed
+    ;; This must be done before asdf:find-system
+    ;; because defsystem may require another system like PROVE-ASDF.
+    #+quicklisp
+    (install-required-systems (pathname-name file))
+
     (let ((*standard-output* (make-broadcast-stream))
           (*error-output* (make-broadcast-stream)))
       (load file :verbose nil :print nil))
@@ -50,9 +56,6 @@
                (pathname-name file)
                file))
 
-      ;; Ensure dependencies are installed
-      #+quicklisp
-      (install-required-systems (asdf:component-name system))
       ;; Ensure dependencies are loaded
       #+quicklisp
       (let ((dependencies (all-required-systems (asdf:component-name system))))
