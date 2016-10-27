@@ -28,28 +28,27 @@ exec ros -Q -L sbcl-bin -- $0 "$@"
 
 (defun ci-service ()
   (cond
-    ((ros:getenv "CIRCLE_PR_NUMBER")
+    ((ros:getenv "CIRCLECI")
      "circle-ci")
-    ((ros:getenv "TRAVIS_PULL_REQUEST")
+    ((ros:getenv "TRAVIS")
      "travis")
-    ((ros:getenv "DRONE_PULL_REQUEST")
+    ((ros:getenv "DRONE")
      "droneio")
-    ((ros:getenv "CI_PULL_REQUEST")
+    ((ros:getenv "CI")
      "common")))
 
 (defun main (&rest argv)
   (declare (ignore argv))
-  (when (ros:getenv "REVIEWDOG")
-    (let* ((script (or *load-pathname* *compile-file-pathname*))
-           (sblint (make-pathname
-                    :name "sblint"
-                    :type (pathname-type script)
-                    :directory (pathname-directory script)))
-           (reviewdog (ensure-reviewdog-installed)))
-      (ros:exec
-       (list "sh" "-c"
-             (format nil "ros ~A | ~A -efm=\"%f:%l:%c: %m\" -diff=\"git diff master\"~:[~;~:* -ci=~A~]"
-                     sblint
-                     reviewdog
-                     (ci-service)))))))
+  (let* ((script (or *load-pathname* *compile-file-pathname*))
+         (sblint (make-pathname
+                  :name "sblint"
+                  :type (pathname-type script)
+                  :directory (pathname-directory script)))
+         (reviewdog (ensure-reviewdog-installed))
+         (command (format nil "ros ~A | ~A -efm=\"%f:%l:%c: %m\" -diff=\"git diff master\"~:[~;~:* -ci=~A~]"
+                          sblint
+                          reviewdog
+                          (ci-service))))
+    (format *error-output* "~&Command: ~A~%" command)
+    (ros:exec (list "sh" "-c" command))))
 ;;; vim: set ft=lisp lisp:
