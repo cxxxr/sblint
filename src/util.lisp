@@ -95,7 +95,9 @@
         (length required-system-names)
         required-system-names)
       (dolist (name required-system-names)
-        (let ((required (ql-dist:find-system name)))
+        (let ((required (ql-dist:find-system name))
+              (*standard-output* (make-broadcast-stream))
+              (*error-output* (make-broadcast-stream)))
           (handler-case
               (ql-dist:ensure-installed required)
             (error (e)
