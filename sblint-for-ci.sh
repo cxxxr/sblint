@@ -14,7 +14,8 @@ install_sblint () {
 }
 
 run_sblint () {
-    ~/.roswell/bin/sblint | $GOPATH/bin/reviewdog -efm="%f:%l:%c: %m" -diff="git diff master" -ci="$1"
+    ci=$1
+    ~/.roswell/bin/sblint | $GOPATH/bin/reviewdog -efm="%f:%l:%c: %m" -diff="git diff master" -ci="$ci"
 }
 
 case "$LISP" in
