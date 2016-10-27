@@ -1,0 +1,42 @@
+#!/bin/sh
+
+REVIEWDOG_VERSION=${REVIEWDOG_VERSION:-0.9.0}
+SBLINT_DIR=$(ros -e '(princ (asdf:system-source-directory :sblint))')
+
+ensure_reviewdog_installed () {
+    if [ -f "$SBLINT_DIR/reviewdog" ]; then
+        curl -L https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_386 > "$SBLINT_DIR/reviewdog"
+        chmod u+x "$SBLINT_DIR/reviewdog"
+    fi
+}
+
+run_sblint () {
+    if [ "$1" ]; then
+        sblint | $SBLINT_DIR/reviewdog -efm="%f:%l:%c: %m" -diff="git diff master" -ci="$1"
+    else
+        sblint | $SBLINT_DIR/reviewdog -efm="%f:%l:%c: %m" -diff="git diff master"
+    fi
+}
+
+case "$LISP" in
+    sbcl*)
+        if [ "$CIRCLECI" ]; then
+            ci="circle-ci"
+        elif [ "$TRAVIS" ]; then
+            ci="travis"
+        elif [ "$DRONE" ]; then
+            ci="droneio"
+        elif [ "CI" ]; then
+            ci="common"
+        fi
+
+        if [ "$ci" ]; then
+            ros install fukamachi/sblint
+            ensure_reviewdog_installed
+            run_sblint "$ci"
+        fi
+        ;;
+    *)
+        # ignore
+        ;;
+fi
