@@ -85,24 +85,21 @@
                                   :from-end t))))
 
 (defun install-required-systems (&rest systems)
-  (let ((required (apply #'all-required-systems systems)))
-    (do-log :info "Installing ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}" (length required) required)
-    (dolist (name required)
-      (let ((*standard-output* (make-broadcast-stream))
-            (*error-output* (make-broadcast-stream)))
-        #+quicklisp
-        (handler-case
-            (let ((system (ql::find-system name)))
-              (if system
-                  (ql-dist:ensure-installed system)
-                  (or (asdf:find-system name nil)
-                      (warn "Dependency ~S not found. Ignored." name))))
-          (error (e)
-            (error 'sblint-system-installation-error :name name :real-error e)))
-        #-quicklisp
-        (let ((system (asdf:find-system name nil)))
-          (unless system
-            (warn "Dependency ~S not found. Ignored." name)))))))
+  (declare (ignorable systems))
+  #+quicklisp
+  (dolist (name systems)
+    (let* ((system (ql-dist:find-system name))
+           (required-system-names
+             (ql-dist:required-systems system)))
+      (do-log :info "Installing ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
+        (length required-system-names)
+        required-system-names)
+      (dolist (name required-system-names)
+        (let ((required (ql-dist:find-system name)))
+          (handler-case
+              (ql-dist:ensure-installed required)
+            (error (e)
+              (error 'sblint-system-installation-error :name name :real-error e))))))))
 
 (defun directory-asd-files (&optional (directory *default-pathname-defaults*))
   "List ASD files in the DIRECTORY and sort them to load."

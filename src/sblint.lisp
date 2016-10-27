@@ -51,6 +51,7 @@
                file))
 
       ;; Ensure dependencies are installed
+      #+quicklisp
       (install-required-systems (asdf:component-name system))
       ;; Ensure dependencies are loaded
       #+quicklisp
