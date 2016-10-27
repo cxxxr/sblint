@@ -10,7 +10,7 @@ install_reviewdog () {
 }
 
 install_sblint () {
-    ros install sblint
+    ros install fukamachi/sblint
 }
 
 run_sblint () {
