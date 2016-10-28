@@ -4,7 +4,7 @@ REVIEWDOG_VERSION=${REVIEWDOG_VERSION:-0.9.0}
 SBLINT_DIR=$(ros -e '(princ (asdf:system-source-directory :sblint))')
 
 ensure_reviewdog_installed () {
-    if [ -f "$SBLINT_DIR/reviewdog" ]; then
+    if ! [ -f "$SBLINT_DIR/reviewdog" ]; then
         curl -L https://github.com/haya14busa/reviewdog/releases/download/$REVIEWDOG_VERSION/reviewdog_linux_386 > "$SBLINT_DIR/reviewdog"
         chmod u+x "$SBLINT_DIR/reviewdog"
     fi
