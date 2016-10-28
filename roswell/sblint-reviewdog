@@ -18,25 +18,17 @@ run_sblint () {
     fi
 }
 
-case "$LISP" in
-    sbcl*)
-        if [ "$CIRCLECI" ]; then
-            ci="circle-ci"
-        elif [ "$TRAVIS" ]; then
-            ci="travis"
-        elif [ "$DRONE" ]; then
-            ci="droneio"
-        elif [ "CI" ]; then
-            ci="common"
-        fi
+if [ "$CIRCLECI" ]; then
+    ci="circle-ci"
+elif [ "$TRAVIS" ]; then
+    ci="travis"
+elif [ "$DRONE" ]; then
+    ci="droneio"
+elif [ "CI" ]; then
+    ci="common"
+fi
 
-        if [ "$ci" ]; then
-            ros install fukamachi/sblint
-            ensure_reviewdog_installed
-            run_sblint "$ci"
-        fi
-        ;;
-    *)
-        # ignore
-        ;;
+if [ "$ci" ]; then
+    ensure_reviewdog_installed
+    run_sblint "$ci"
 fi
