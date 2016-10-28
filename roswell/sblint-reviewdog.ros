@@ -1,0 +1,76 @@
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -L sbcl-bin -- $0 "$@"
+|#
+
+(defpackage #:ros.script.sblint-reviewdog
+  (:use #:cl))
+(in-package :ros.script.sblint-reviewdog)
+
+(defvar *reviewdog-version* "0.9.0")
+
+(defun ensure-reviewdog-installed ()
+  (let ((reviewdog (asdf:system-relative-pathname :sblint #P"reviewdog")))
+    (or (probe-file reviewdog)
+        (progn
+          (ql-http:fetch
+           (format nil "https://github.com/haya14busa/reviewdog/releases/download/~A/reviewdog~A"
+                   *reviewdog-version*
+                   #+darwin
+                   (format nil "_darwin_~A" #+x86-64 "amd64" #-x86-64 "386")
+                   #+linux
+                   (format nil "_linux_~A" #+x86-64 "amd64" #-x86-64 "386")
+                   #-(or darwin linux)
+                   (error "Supports only Linux and Mac."))
+           reviewdog)
+          (sb-posix:chmod reviewdog #o755)
+          reviewdog))))
+
+(defun ci-service ()
+  (cond
+    ((ros:getenv "CIRCLECI")
+     "circle-ci")
+    ((ros:getenv "TRAVIS")
+     "travis")
+    ((ros:getenv "DRONE")
+     "droneio")
+    ((ros:getenv "CI")
+     "common")))
+
+(defun main (&rest argv)
+  (declare (ignore argv))
+  (let* ((script (or *load-pathname* *compile-file-pathname*))
+         (sblint (make-pathname
+                  :name "sblint"
+                  :type (pathname-type script)
+                  :directory (pathname-directory script)))
+         (reviewdog (ensure-reviewdog-installed))
+         (ci-service (ci-service)))
+    (multiple-value-bind (r w) (sb-posix:pipe)
+      (let ((sblint-proc
+              (sb-ext:run-program "/bin/sh" (list (namestring sblint))
+                                  :wait nil
+                                  :output
+                                  (sb-sys:make-fd-stream w :input nil :output t
+                                                           :element-type 'character
+                                                           :buffering :full
+                                                           :dual-channel-p t
+                                                           :external-format :utf-8)
+                                  :error *error-output*))
+            (reviewdog-proc
+              (sb-ext:run-program reviewdog (list "-efm=\"%f:%l:%c: %m\"" "-diff=\"git diff master\""
+                                                  (and ci-service
+                                                       (format nil "-ci=~A" ci-service)))
+                                  :wait nil
+                                  :input
+                                  (sb-sys:make-fd-stream r :input t :output nil
+                                                           :element-type 'character
+                                                           :buffering :full
+                                                           :dual-channel-p t
+                                                           :external-format :utf-8)
+                                  :output t
+                                  :error *error-output*)))
+        (sb-ext:process-wait sblint-proc)
+        (sb-posix:close w)
+        (sb-ext:process-wait reviewdog-proc)))))
+;;; vim: set ft=lisp lisp:
