@@ -51,10 +51,8 @@ exec ros -Q -L sbcl-bin -- $0 "$@"
               (sb-ext:run-program "/bin/sh" (list (namestring sblint))
                                   :wait nil
                                   :output
-                                  (sb-sys:make-fd-stream w :input nil :output t
+                                  (sb-sys:make-fd-stream w :output t
                                                            :element-type 'character
-                                                           :buffering :full
-                                                           :dual-channel-p t
                                                            :external-format :utf-8)
                                   :error *error-output*))
             (reviewdog-proc
@@ -63,12 +61,10 @@ exec ros -Q -L sbcl-bin -- $0 "$@"
                                                        (format nil "-ci=~A" ci-service)))
                                   :wait nil
                                   :input
-                                  (sb-sys:make-fd-stream r :input t :output nil
+                                  (sb-sys:make-fd-stream r :input t
                                                            :element-type 'character
-                                                           :buffering :full
-                                                           :dual-channel-p t
                                                            :external-format :utf-8)
-                                  :output t
+                                  :output *standard-output*
                                   :error *error-output*)))
         (sb-ext:process-wait sblint-proc)
         (sb-posix:close w)
