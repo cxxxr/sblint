@@ -4,8 +4,10 @@
   (:import-from #:sblint/error
                 #:sblint-system-installation-error)
   (:import-from #:sblint/logger
-                #:do-log)
-  (:export #:make-relative-pathname
+                #:do-log
+                #:*logger-stream*)
+  (:export #:with-muffled-streams
+           #:make-relative-pathname
            #:condition-name-to-print
            #:all-required-systems
            #:install-required-systems
@@ -13,6 +15,13 @@
            #:asdf-target-system-locator
            #:load-asd))
 (in-package #:sblint/util)
+
+(defmacro with-muffled-streams (&body body)
+  `(let ((*standard-output* (make-broadcast-stream))
+         (*error-output* (make-broadcast-stream))
+         (*terminal-io* (make-two-way-stream *standard-input* (make-broadcast-stream)))
+         (*logger-stream* *error-output*))
+     ,@body))
 
 (defun make-relative-pathname (path &optional (base *default-pathname-defaults*))
   (when (uiop:relative-pathname-p path)
@@ -65,8 +74,7 @@
      (string-downcase (type-of condition)))))
 
 (defun direct-dependencies (system-name)
-  (let ((system (let ((*standard-output* (make-broadcast-stream))
-                      (*error-output* (make-broadcast-stream)))
+  (let ((system (with-muffled-streams
                   (asdf:find-system system-name))))
     (append (asdf:system-depends-on system)
             (asdf:system-defsystem-depends-on system))))
@@ -100,14 +108,13 @@
         (length required-system-names)
         required-system-names)
       (dolist (name required-system-names)
-        (let ((required (ql-dist:find-system name))
-              (*standard-output* (make-broadcast-stream))
-              (*error-output* (make-broadcast-stream)))
+        (let ((required (ql-dist:find-system name)))
           (when required
-            (handler-case
-                (ql-dist:ensure-installed required)
-              (error (e)
-                (error 'sblint-system-installation-error :name name :real-error e)))))))))
+            (with-muffled-streams
+              (handler-case
+                  (ql-dist:ensure-installed required)
+                (error (e)
+                  (error 'sblint-system-installation-error :name name :real-error e))))))))))
 
 (defun directory-asd-files (&optional (directory *default-pathname-defaults*))
   "List ASD files in the DIRECTORY and sort them to load."
@@ -115,8 +122,7 @@
          (system-names (mapcar #'pathname-name asd-files))
          (deps-map (make-hash-table :test 'equal)))
     (dolist (file asd-files)
-      (let ((*standard-output* (make-broadcast-stream))
-            (*error-output* (make-broadcast-stream)))
+      (with-muffled-streams
         (load file :verbose nil :print nil))
       (let* ((deps (all-required-systems (pathname-name file)))
              (deps (delete-if-not (lambda (name)
@@ -149,8 +155,7 @@
 (defun load-asd (file)
   (assert (string= (pathname-type file) "asd"))
 
-  (let ((*standard-output* (make-broadcast-stream))
-        (*error-output* (make-broadcast-stream)))
+  (with-muffled-streams
     #+quicklisp
     (handler-case
         (load file :verbose nil :print nil)

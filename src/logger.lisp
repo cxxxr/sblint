@@ -2,6 +2,7 @@
 (defpackage #:sblint/logger
   (:use #:cl)
   (:export #:*enable-logger*
+           #:*logger-stream*
            #:do-log))
 (in-package #:sblint/logger)
 

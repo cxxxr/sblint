@@ -12,6 +12,7 @@
                 #:sblint-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
+                #:with-muffled-streams
                 #:make-relative-pathname
                 #:condition-name-to-print
                 #:install-required-systems
@@ -45,8 +46,7 @@
     (let* ((asdf:*system-definition-search-functions*
              (cons (asdf-target-system-locator (pathname-name file))
                    asdf:*system-definition-search-functions*))
-           (system (let ((*standard-output* (make-broadcast-stream))
-                         (*error-output* (make-broadcast-stream)))
+           (system (with-muffled-streams
                      (asdf:find-system (pathname-name file) nil))))
       (unless system
         (error "System '~A' does not exist in '~A'."
@@ -63,19 +63,15 @@
         (when dependencies
           (ql:quickload dependencies :silent t)))
       #-quicklisp
-      (let ((*standard-output* (make-broadcast-stream))
-            (*error-output* (make-broadcast-stream))
-            (*terminal-io* (make-broadcast-stream)))
-        (mapc (lambda (name)
-                (asdf:load-system name :verbose nil))
-              (all-required-systems (asdf:component-name system))))
+      (mapc (lambda (name)
+              (with-muffled-streams
+                (asdf:load-system name :verbose nil)))
+            (all-required-systems (asdf:component-name system)))
 
       (run-lint-fn (lambda ()
                      (do-log :info "Loading a system: ~A" (asdf:component-name system))
                      (handler-case
-                         (let ((*standard-output* (make-broadcast-stream))
-                               (*error-output* (make-broadcast-stream))
-                               (*terminal-io* (make-two-way-stream *standard-input* (make-broadcast-stream))))
+                         (with-muffled-streams
                            (asdf:oos 'asdf:load-op system :force t :verbose nil))
                        ((or asdf:compile-error
                          #+asdf3 uiop:compile-file-error)
