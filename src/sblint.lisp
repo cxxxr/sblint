@@ -71,6 +71,7 @@
               (all-required-systems (asdf:component-name system))))
 
       (run-lint-fn (lambda ()
+                     (do-log :info "Loading a system: ~A" (asdf:component-name system))
                      (handler-case
                          (let ((*standard-output* (make-broadcast-stream))
                                (*error-output* (make-broadcast-stream))
@@ -80,7 +81,8 @@
                          #+asdf3 uiop:compile-file-error)
                          ()
                          (warn "Compilation failed in a system ~S."
-                               (asdf:component-name system)))))
+                               (asdf:component-name system))))
+                     (do-log :info "Done"))
                    stream))
 
     (values)))
