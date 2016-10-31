@@ -64,7 +64,14 @@
     (otherwise
      (string-downcase (type-of condition)))))
 
-(defun all-required-systems (&rest systems)
+(defun direct-dependencies (system-name)
+  (let ((system (let ((*standard-output* (make-broadcast-stream))
+                      (*error-output* (make-broadcast-stream)))
+                  (asdf:find-system system-name))))
+    (append (asdf:system-depends-on system)
+            (asdf:system-defsystem-depends-on system))))
+
+(defun all-required-systems (system-name)
   (labels ((sbcl-contrib-p (name)
              (declare (type simple-string name))
              (and (<= 3 (length name))
@@ -72,27 +79,22 @@
            (system-dependencies (system-name)
              (unless (or (string-equal system-name "asdf")
                          (sbcl-contrib-p system-name))
-               (let ((system (let ((*standard-output* (make-broadcast-stream))
-                                   (*error-output* (make-broadcast-stream)))
-                               (asdf:find-system system-name nil))))
-                 (when system
-                   (cons system-name
-                         (loop for dep in (append (asdf:system-depends-on system)
-                                                  (asdf:system-defsystem-depends-on system))
-                               append (system-dependencies
-                                       (if (consp dep)
-                                           (second dep)
-                                           (string-downcase dep))))))))))
-    (delete-if (lambda (dep)
-                 (find dep systems :test #'string=))
-               (delete-duplicates (mapcan #'system-dependencies systems)
-                                  :test #'string=
-                                  :from-end t))))
+               (cons system-name
+                     (loop for dep in (direct-dependencies system-name)
+                           append (system-dependencies
+                                   (if (consp dep)
+                                       (second dep)
+                                       (string-downcase dep))))))))
+    (delete system-name
+            (delete-duplicates (system-dependencies system-name)
+                               :test #'string=
+                               :from-end t)
+            :test #'string=)))
 
-(defun install-required-systems (&rest systems)
-  (declare (ignorable systems))
+(defun install-required-systems (system-name)
+  (declare (ignorable system-name))
   #+quicklisp
-  (let ((required-system-names (apply #'all-required-systems systems)))
+  (let ((required-system-names (direct-dependencies system-name)))
     (when required-system-names
       (do-log :info "Installing ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
         (length required-system-names)
