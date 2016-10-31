@@ -147,9 +147,6 @@
   (unless (uiop:directory-exists-p directory)
     (error "Directory does not exist: '~A'" directory))
 
-  (dolist (dir (uiop:subdirectories directory))
-    (let ((*enable-logger* nil))
-      (run-lint-directory dir stream)))
   (let ((asdf:*central-registry* (cons directory asdf:*central-registry*)))
     (dolist (file (directory-asd-files directory))
       (run-lint-file file stream)))
