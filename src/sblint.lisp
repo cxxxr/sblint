@@ -19,7 +19,8 @@
                 #:all-required-systems
                 #:directory-asd-files
                 #:asdf-target-system-locator
-                #:load-asd)
+                #:load-asd
+                #:file-in-directory-p)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p
@@ -79,7 +80,11 @@
                          (warn "Compilation failed in a system ~S."
                                (asdf:component-name system))))
                      (do-log :info "Done"))
-                   stream))
+                   stream
+                   *error-output*
+                   (make-pathname :defaults file
+                                  :name nil
+                                  :type nil)))
 
     (values)))
 
@@ -102,7 +107,7 @@
              :file file
              :message (get-output-stream-string err)))))
 
-(defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*))
+(defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
          (*error-output* error)
          (error-map (make-hash-table :test 'equalp)))
@@ -113,14 +118,19 @@
                     (file (and context
                                (sb-c::compiler-error-context-file-name context)))
                     (position (cond
-                                (context (compiler-note-position
-                                          file
-                                          (compiler-source-path context)))
+                                ((and (typep file '(or string pathname))
+                                      context)
+                                 (compiler-note-position
+                                  file
+                                  (compiler-source-path context)))
                                 ((typep condition 'reader-error)
                                  (let ((stream (stream-error-stream condition)))
                                    (file-position stream)))
                                 (t nil))))
                (when (and position
+                          (or (not directory)
+                              (and file
+                                   (file-in-directory-p file directory)))
                           (not (gethash (list file position (princ-to-string condition)) error-map)))
                  (setf (gethash (list file position (princ-to-string condition)) error-map) t)
                  (multiple-value-bind (line column)

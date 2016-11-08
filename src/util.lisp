@@ -13,7 +13,8 @@
            #:install-required-systems
            #:directory-asd-files
            #:asdf-target-system-locator
-           #:load-asd))
+           #:load-asd
+           #:file-in-directory-p))
 (in-package #:sblint/util)
 
 (defmacro with-muffled-streams (&body body)
@@ -164,3 +165,8 @@
         (load file :verbose nil :print nil)))
     #-quicklisp
     (load file :verbose nil :print nil)))
+
+(defun file-in-directory-p (file directory)
+  (eql 0 (search (pathname-directory directory)
+                 (pathname-directory file)
+                 :test #'equal)))
