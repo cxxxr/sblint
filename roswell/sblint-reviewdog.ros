@@ -1,3 +1,4 @@
+#!/bin/sh
 #|-*- mode:lisp -*-|#
 #|
 exec ros -Q -L sbcl-bin -- $0 "$@"
