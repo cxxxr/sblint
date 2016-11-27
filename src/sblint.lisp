@@ -169,18 +169,24 @@
                      (warning #'handle-condition))
         (funcall fn)))))
 
+(defvar *global-enable-logger*)
 (defun run-lint-directory (directory &optional (stream *standard-output*))
-  (do-log :info "Lint directory '~A'" (make-relative-pathname directory))
+  (let ((*global-enable-logger*
+          (if (boundp '*global-enable-logger*)
+              *global-enable-logger*
+              *enable-logger*)))
+    (do-log :info "Lint directory '~A'" (make-relative-pathname directory))
 
-  (unless (uiop:directory-exists-p directory)
-    (error "Directory does not exist: '~A'" directory))
+    (unless (uiop:directory-exists-p directory)
+      (error "Directory does not exist: '~A'" directory))
 
-  (dolist (dir (uiop:subdirectories directory))
-    (unless (equal (car (last (pathname-directory dir))) "quicklisp")
-      (let ((*enable-logger* nil))
-        (run-lint-directory dir stream))))
-  (let ((asdf:*central-registry* (cons directory asdf:*central-registry*)))
-    (dolist (file (directory-asd-files directory))
-      (run-lint-file file stream)))
+    (dolist (dir (uiop:subdirectories directory))
+      (unless (equal (car (last (pathname-directory dir))) "quicklisp")
+        (let ((*enable-logger* nil))
+          (run-lint-directory dir stream))))
+    (let ((asdf:*central-registry* (cons directory asdf:*central-registry*)))
+      (let ((*enable-logger* *global-enable-logger*))
+        (dolist (file (directory-asd-files directory))
+          (run-lint-file file stream)))))
 
   (values))
