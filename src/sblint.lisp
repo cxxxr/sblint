@@ -73,28 +73,31 @@
                                       :name nil
                                       :type nil))
             (errout *error-output*))
-        (flet ((handle-compile-error (e)
-                 (let ((*error-output* errout))
-                   (if (remove-if-not (lambda (comp)
-                                        (file-in-directory-p
-                                         (asdf:component-pathname comp)
-                                         directory))
-                                      (mapcar #'cdr
-                                              (uiop/lisp-build::compile-condition-context-arguments e)))
-                       (warn "Compilation failed in a system ~S."
-                             (asdf:component-name system))
-                       (progn
-                         (let ((accept (find-restart 'asdf/action:accept e)))
-                           (when accept
-                             (invoke-restart accept)))
-                         (let ((continue (find-restart 'continue e)))
-                           (when continue
-                             (invoke-restart continue))))))))
+        (labels ((ignore-and-continue (e)
+                   (let ((accept (find-restart 'asdf/action:accept e)))
+                     (when accept
+                       (invoke-restart accept)))
+                   (let ((continue (find-restart 'continue e)))
+                     (when continue
+                       (invoke-restart continue))))
+                 (handle-compile-error (e)
+                   (let ((*error-output* errout))
+                     (if (remove-if-not (lambda (comp)
+                                          (file-in-directory-p
+                                           (asdf:component-pathname comp)
+                                           directory))
+                                        (mapcar #'cdr
+                                                (uiop/lisp-build::compile-condition-context-arguments e)))
+                         (warn "Compilation failed in a system ~S."
+                               (asdf:component-name system))
+                         (ignore-and-continue e)))))
           (run-lint-fn (lambda ()
                          (do-log :info "Loading a system: ~A" (asdf:component-name system))
                          (handler-bind ((asdf:compile-error #'handle-compile-error)
                                         #+asdf3
-                                        (uiop:compile-file-error #'handle-compile-error))
+                                        (uiop:compile-file-error #'handle-compile-error)
+                                        #+sbcl
+                                        (sb-int:package-at-variance #'ignore-and-continue))
                            (with-muffled-streams
                                (asdf:oos 'asdf:load-op system :force t :verbose nil)))
                          (do-log :info "Done"))
