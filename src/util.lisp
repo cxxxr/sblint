@@ -161,7 +161,7 @@
     (handler-case
         (load file :verbose nil :print nil)
       (asdf:missing-component (e)
-        (ql:quickload (asdf/find-system:missing-requires e) :silent t)
+        (ql:quickload (asdf/find-component:missing-requires e) :silent t)
         (load file :verbose nil :print nil)))
     #-quicklisp
     (load file :verbose nil :print nil)))
