@@ -123,8 +123,7 @@
          (system-names (mapcar #'pathname-name asd-files))
          (deps-map (make-hash-table :test 'equal)))
     (dolist (file asd-files)
-      (with-muffled-streams
-        (load file :verbose nil :print nil))
+      (load-asd file)
       (let* ((deps (all-required-systems (pathname-name file)))
              (deps (delete-if-not (lambda (name)
                                     (find name system-names :test #'string=))
@@ -159,7 +158,9 @@
   (with-muffled-streams
     #+quicklisp
     (handler-case
-        (load file :verbose nil :print nil)
+        (let ((*package* (find-package :asdf-user)))
+          (handler-bind ((style-warning #'muffle-warning))
+            (load file :verbose nil :print nil)))
       (asdf:missing-component (e)
         (ql:quickload (asdf/find-component:missing-requires e) :silent t)
         (load file :verbose nil :print nil)))
