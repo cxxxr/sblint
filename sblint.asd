@@ -1,6 +1,6 @@
 #+sbcl
 (defsystem "sblint"
-  :version "0.1.1"
+  :version "0.1.2"
   :author "Eitaro Fukamachi"
   :license "BSD 2-Clause"
   :depends-on ("swank"
