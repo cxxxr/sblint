@@ -81,24 +81,27 @@
             (asdf:system-defsystem-depends-on system))))
 
 (defun all-required-systems (system-name)
-  (labels ((sbcl-contrib-p (name)
-             (declare (type simple-string name))
-             (and (<= 3 (length name))
-                  (string-equal name "sb-" :end1 3)))
-           (system-dependencies (system-name)
-             (unless (or (string-equal system-name "asdf")
-                         (sbcl-contrib-p system-name))
-               (cons system-name
-                     (loop for dep in (direct-dependencies system-name)
-                           append (system-dependencies
-                                   (if (consp dep)
-                                       (second dep)
-                                       (string-downcase dep))))))))
-    (delete system-name
-            (delete-duplicates (system-dependencies system-name)
-                               :test #'string=
-                               :from-end t)
-            :test #'string=)))
+  (let ((appeared (make-hash-table :test 'equal)))
+    (labels ((sbcl-contrib-p (name)
+               (declare (type simple-string name))
+               (and (<= 3 (length name))
+                    (string-equal name "sb-" :end1 3)))
+             (system-dependencies (system-name)
+               (unless (or (string-equal system-name "asdf")
+                           (sbcl-contrib-p system-name)
+                           (gethash system-name appeared))
+                 (setf (gethash system-name appeared) t)
+                 (cons system-name
+                       (loop for dep in (direct-dependencies system-name)
+                             append (system-dependencies
+                                     (if (consp dep)
+                                         (second dep)
+                                         (string-downcase dep))))))))
+      (delete system-name
+              (delete-duplicates (system-dependencies system-name)
+                                 :test #'string=
+                                 :from-end t)
+              :test #'string=))))
 
 (defun install-required-systems (system-name)
   (declare (ignorable system-name))
