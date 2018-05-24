@@ -59,15 +59,19 @@
       (install-required-systems (pathname-name file))
 
       ;; Ensure dependencies are loaded
-      #+quicklisp
-      (let ((dependencies (all-required-systems (asdf:component-name system))))
+      (let ((dependencies #+quicklisp (all-required-systems (asdf:component-name system))
+                          #-quicklisp (all-required-systems (asdf:component-name system))))
         (when dependencies
-          (ql:quickload dependencies :silent t)))
-      #-quicklisp
-      (mapc (lambda (name)
-              (with-muffled-streams
-                  (asdf:load-system name :verbose nil)))
-            (all-required-systems (asdf:component-name system)))
+          (do-log :info "Loading ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
+            (length dependencies)
+            dependencies)
+          #+quicklisp
+          (ql:quickload dependencies :silent t)
+          #-quicklisp
+          (mapc (lambda (name)
+                  (with-muffled-streams
+                    (asdf:load-system name :verbose nil)))
+                dependencies)))
 
       (let ((directory (make-pathname :defaults file
                                       :name nil

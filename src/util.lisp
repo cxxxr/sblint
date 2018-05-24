@@ -117,6 +117,7 @@
       (dolist (name required-system-names)
         (let ((required (ql-dist:find-system name)))
           (when required
+            (do-log :info "Installing '~A'" required)
             (with-muffled-streams
               (handler-case
                   (ql-dist:ensure-installed required)
