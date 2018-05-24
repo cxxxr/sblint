@@ -169,7 +169,7 @@
                        (sb-int:simple-stream-error () (continue)))))))))
       (handler-bind ((sb-c:fatal-compiler-error #'handle-condition)
                      (sb-c:compiler-error #'handle-condition)
-                     ;; Ignore compiler-not for now.
+                     ;; Ignore compiler-note for now.
                      ;; Perhaps those notes could be shown by some command-line option.
                      ;; (sb-ext:compiler-note #'handle-condition)
                      (error #'handle-condition)
