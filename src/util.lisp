@@ -111,9 +111,6 @@
   #+quicklisp
   (let ((required-system-names (direct-dependencies system-name)))
     (when required-system-names
-      (do-log :info "Installing ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
-        (length required-system-names)
-        required-system-names)
       (dolist (name required-system-names)
         (let ((required (ql-dist:find-system name)))
           (when required
