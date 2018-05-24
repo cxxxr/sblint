@@ -80,6 +80,9 @@
     (append (asdf:system-depends-on system)
             (asdf:system-defsystem-depends-on system))))
 
+(defun system-root-name (system-name)
+  (subseq system-name 0 (position #\/ system-name)))
+
 (defun all-required-systems (system-name)
   (let ((appeared (make-hash-table :test 'equal)))
     (labels ((sbcl-contrib-p (name)
@@ -98,7 +101,7 @@
                                          (second dep)
                                          (string-downcase dep))))))))
       (delete system-name
-              (delete-duplicates (system-dependencies system-name)
+              (delete-duplicates (mapcar #'system-root-name (system-dependencies system-name))
                                  :test #'string=
                                  :from-end t)
               :test #'string=))))
