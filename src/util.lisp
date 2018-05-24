@@ -155,9 +155,11 @@
 
 (defun asdf-target-system-locator (system-name)
   (lambda (name)
-    (when (and (string= name system-name)
-               (asdf:system-registered-p system-name))
-      (cdr (asdf:system-registered-p system-name)))))
+    (and (string= name system-name)
+         #+asdf3.3
+         (asdf:registered-system system-name)
+         #-asdf3.3
+         (cdr (asdf:system-registered-p system-name)))))
 
 (defun load-asd (file)
   (assert (string= (pathname-type file) "asd"))
