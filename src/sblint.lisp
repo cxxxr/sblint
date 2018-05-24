@@ -150,23 +150,29 @@
                                  (let ((stream (stream-error-stream condition)))
                                    (file-position stream)))
                                 (t nil))))
-               (when (and position
-                          (or (not directory)
-                              (and file
-                                   (file-in-directory-p file directory)))
-                          (not (gethash (list file position (princ-to-string condition)) error-map)))
-                 (setf (gethash (list file position (princ-to-string condition)) error-map) t)
-                 (multiple-value-bind (line column)
-                     (file-position-to-line-and-column file position)
-                   (let ((*print-pretty* nil))
-                     (handler-case
-                         (format stream "~&~A:~A:~A: ~A: ~A~%"
-                                 (make-relative-pathname file)
-                                 line
-                                 column
-                                 (condition-name-to-print condition)
-                                 condition)
-                       (sb-int:simple-stream-error () (continue)))))))))
+               (cond
+                 ((and position
+                       (or (not directory)
+                           (and file
+                                (file-in-directory-p file directory)))
+                       (not (gethash (list file position (princ-to-string condition)) error-map)))
+                  (setf (gethash (list file position (princ-to-string condition)) error-map) t)
+                  (multiple-value-bind (line column)
+                      (file-position-to-line-and-column file position)
+                    (let ((*print-pretty* nil))
+                      (handler-case
+                          (format stream "~&~A:~A:~A: ~A: ~A~%"
+                                  (make-relative-pathname file)
+                                  line
+                                  column
+                                  (condition-name-to-print condition)
+                                  condition)
+                        (sb-int:simple-stream-error () (continue))))))
+                 ((not (typep condition 'asdf/operate:recursive-operate))
+                  (format *error-output*
+                          "~&WARNING~@[ while loading '~A'~]:~%   ~A~%"
+                          *load-pathname*
+                          condition))))))
       (handler-bind ((sb-c:fatal-compiler-error #'handle-condition)
                      (sb-c:compiler-error #'handle-condition)
                      ;; Ignore compiler-note for now.
