@@ -168,6 +168,7 @@
                                   (condition-name-to-print condition)
                                   condition)
                         (sb-int:simple-stream-error () (continue))))))
+                 #+asdf3.3
                  ((not (typep condition 'asdf/operate:recursive-operate))
                   (format *error-output*
                           "~&WARNING~@[ while loading '~A'~]:~%   ~A~%"
