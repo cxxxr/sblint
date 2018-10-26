@@ -1,7 +1,7 @@
 #!/bin/sh
 #|-*- mode:lisp -*-|#
 #| A linter for Common Lisp source code using SBCL
-exec ros -Q -- $0 "$@"
+exec ros -Q -L sbcl-bin -- $0 "$@"
 |#
 #-sbcl
 (error "SBLint requires SBCL. Make sure it is installed with `ros install sbcl' and use it with `ros use sbcl'.")
