@@ -137,8 +137,10 @@
              (let* ((*error-output* errout)
                     (sb-int:*print-condition-references* nil)
                     (context (sb-c::find-error-context nil))
-                    (file (and context
-                               (sb-c::compiler-error-context-file-name context)))
+                    (file (or (and context
+                                   (sb-c::compiler-error-context-file-name context))
+                              *load-truename*
+                              *compile-file-truename*))
                     (position (cond
                                 ((and (typep file '(or string pathname))
                                       context)
@@ -173,12 +175,18 @@
                                                   sb-kernel:redefinition-warning
                                                   asdf:bad-system-name
                                                   uiop:compile-warned-warning)))
-                       (or (null *compile-file-truename*)
-                           (and (file-in-directory-p *compile-file-truename* directory)
-                                (not (file-in-directory-p *compile-file-truename* (merge-pathnames #P"quicklisp/" directory))))))
+                       (or (null file)
+                           (let ((real-file
+                                   (if (file-in-directory-p file asdf:*user-cache*)
+                                       (let ((tmp
+                                               (make-relative-pathname file asdf:*user-cache*)))
+                                         (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
+                                       file)))
+                             (and (file-in-directory-p real-file directory)
+                                  (not (file-in-directory-p real-file (merge-pathnames #P"quicklisp/" directory)))))))
                   (format *error-output*
-                          "~&WARNING~@[ while loading '~A'~]:~%   ~A~%"
-                          *load-pathname*
+                          "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
+                          file
                           condition))))))
       (handler-bind ((sb-c:fatal-compiler-error #'handle-condition)
                      (sb-c:compiler-error #'handle-condition)
