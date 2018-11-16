@@ -83,6 +83,17 @@
 (defun system-root-name (system-name)
   (subseq system-name 0 (position #\/ system-name)))
 
+(defun parse-dependency-form (dep)
+  (etypecase dep
+    (cons
+     (ecase (first dep)
+       (:feature (parse-dependency-form (third dep)))
+       (:version (second dep))
+       (:require (second dep))))
+    ((or string
+         symbol)
+     (string-downcase dep))))
+
 (defun all-required-systems (system-name)
   (let ((appeared (make-hash-table :test 'equal)))
     (labels ((sbcl-contrib-p (name)
@@ -97,9 +108,7 @@
                  (cons system-name
                        (loop for dep in (direct-dependencies system-name)
                              append (system-dependencies
-                                     (if (consp dep)
-                                         (second dep)
-                                         (string-downcase dep))))))))
+                                     (parse-dependency-form dep)))))))
       (delete system-name
               (delete-duplicates (mapcar #'system-root-name (system-dependencies system-name))
                                  :test #'string=
