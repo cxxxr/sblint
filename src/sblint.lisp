@@ -153,7 +153,8 @@
                  ((and position
                        (or (not directory)
                            (and file
-                                (file-in-directory-p file directory)))
+                                (file-in-directory-p file directory)
+                                (not (file-in-directory-p file (merge-pathnames #P"quicklisp/" directory)))))
                        (not (gethash (list file position (princ-to-string condition)) error-map)))
                   (setf (gethash (list file position (princ-to-string condition)) error-map) t)
                   (multiple-value-bind (line column)
