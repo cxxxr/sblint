@@ -74,7 +74,8 @@
      (string-downcase (type-of condition)))))
 
 (defun direct-dependencies (system-name)
-  (let ((system (asdf:find-system system-name)))
+  (let ((system (handler-bind ((asdf:bad-system-name #'muffle-warning))
+                  (asdf:find-system system-name))))
     (append (asdf:system-depends-on system)
             (asdf:system-defsystem-depends-on system))))
 
