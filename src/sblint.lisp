@@ -169,7 +169,13 @@
                                   condition)
                         (sb-int:simple-stream-error () (continue))))))
                  #+asdf3.3
-                 ((not (typep condition 'asdf/operate:recursive-operate))
+                 ((and (not (typep condition '(or asdf/operate:recursive-operate
+                                                  sb-kernel:redefinition-warning
+                                                  asdf:bad-system-name
+                                                  uiop:compile-warned-warning)))
+                       (or (null *compile-file-truename*)
+                           (and (file-in-directory-p *compile-file-truename* directory)
+                                (not (file-in-directory-p *compile-file-truename* (merge-pathnames #P"quicklisp/" directory))))))
                   (format *error-output*
                           "~&WARNING~@[ while loading '~A'~]:~%   ~A~%"
                           *load-pathname*
