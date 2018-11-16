@@ -19,7 +19,6 @@
                 #:all-required-systems
                 #:directory-asd-files
                 #:asdf-target-system-locator
-                #:load-asd
                 #:file-in-directory-p)
   (:import-from #:uiop
                 #:file-exists-p
@@ -43,7 +42,7 @@
     (unless (equal (pathname-type file) "asd")
       (error "Not ASD file: '~A'" file))
 
-    (load-asd file)
+    (asdf:load-asd file)
     (let* ((asdf:*system-definition-search-functions*
              (cons (asdf-target-system-locator (pathname-name file))
                    asdf:*system-definition-search-functions*))

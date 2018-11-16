@@ -13,7 +13,6 @@
            #:install-required-systems
            #:directory-asd-files
            #:asdf-target-system-locator
-           #:load-asd
            #:file-in-directory-p))
 (in-package #:sblint/util)
 
@@ -75,8 +74,7 @@
      (string-downcase (type-of condition)))))
 
 (defun direct-dependencies (system-name)
-  (let ((system (with-muffled-streams
-                  (asdf:find-system system-name))))
+  (let ((system (asdf:find-system system-name)))
     (append (asdf:system-depends-on system)
             (asdf:system-defsystem-depends-on system))))
 
@@ -136,7 +134,7 @@
          (system-names (mapcar #'pathname-name asd-files))
          (deps-map (make-hash-table :test 'equal)))
     (dolist (file asd-files)
-      (load-asd file)
+      (asdf:load-asd file)
       (let* ((deps (all-required-systems (pathname-name file)))
              (deps (delete-if-not (lambda (name)
                                     (find name system-names :test #'string=))
@@ -149,7 +147,7 @@
               (nreverse
                (delete-duplicates
                 (mapcan (lambda (file)
-                          (load-asd file)
+                          (asdf:load-asd file)
                           (to-load-systems (pathname-name file)))
                         asd-files)
                 :test #'string=))))
@@ -166,21 +164,6 @@
          (asdf:registered-system system-name)
          #-asdf3.3
          (cdr (asdf:system-registered-p system-name)))))
-
-(defun load-asd (file)
-  (assert (string= (pathname-type file) "asd"))
-
-  (with-muffled-streams
-    #+quicklisp
-    (handler-case
-        (let ((*package* (find-package :asdf-user)))
-          (handler-bind ((style-warning #'muffle-warning))
-            (load file :verbose nil :print nil)))
-      (asdf:missing-component (e)
-        (ql:quickload (asdf/find-component:missing-requires e) :silent t)
-        (load file :verbose nil :print nil)))
-    #-quicklisp
-    (load file :verbose nil :print nil)))
 
 (defun file-in-directory-p (file directory)
   (eql 0 (search (pathname-directory directory)
