@@ -75,7 +75,8 @@
 
 (defun direct-dependencies (system-name)
   (let ((system (handler-bind ((asdf:bad-system-name #'muffle-warning))
-                  (asdf:find-system system-name))))
+                  (with-muffled-streams
+                    (asdf:find-system system-name)))))
     (append (asdf:system-depends-on system)
             (asdf:system-defsystem-depends-on system))))
 
@@ -135,7 +136,8 @@
          (system-names (mapcar #'pathname-name asd-files))
          (deps-map (make-hash-table :test 'equal)))
     (dolist (file asd-files)
-      (asdf:load-asd file)
+      (with-muffled-streams
+        (asdf:load-asd file))
       (let* ((deps (all-required-systems (pathname-name file)))
              (deps (delete-if-not (lambda (name)
                                     (find name system-names :test #'string=))

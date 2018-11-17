@@ -64,13 +64,14 @@
           (do-log :info "Loading ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
             (length dependencies)
             dependencies)
-          #+quicklisp
-          (ql:quickload dependencies :silent t)
-          #-quicklisp
-          (mapc (lambda (name)
-                  (with-muffled-streams
-                    (asdf:load-system name :verbose nil)))
-                dependencies)))
+          (handler-bind ((warning #'muffle-warning))
+            #+quicklisp
+            (ql:quickload dependencies :silent t)
+            #-quicklisp
+            (mapc (lambda (name)
+                    (with-muffled-streams
+                      (asdf:load-system name :verbose nil)))
+                  dependencies))))
 
       (let ((directory (make-pathname :defaults file
                                       :name nil
@@ -170,10 +171,9 @@
                                   (condition-name-to-print condition)
                                   condition)
                         (sb-int:simple-stream-error () (continue))))))
-                 #+asdf3.3
-                 ((and (not (typep condition '(or asdf/operate:recursive-operate
+                 ((and (not (typep condition '(or #+asdf3.3 asdf/operate:recursive-operate
+                                                  ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
                                                   sb-kernel:redefinition-warning
-                                                  asdf:bad-system-name
                                                   uiop:compile-warned-warning)))
                        (or (null file)
                            (let ((real-file
