@@ -83,12 +83,26 @@
 (defun system-root-name (system-name)
   (subseq system-name 0 (position #\/ system-name)))
 
+(defun parse-feature-expression (expr)
+  (etypecase expr
+    (cons (ecase (first expr)
+            (:and (notany #'null
+                          (mapcar #'parse-feature-expression
+                                  (cdr expr))))
+            (:or (notevery #'nullx
+                           (mapcar #'parse-feature-expression
+                                   (cdr expr))))
+            (:not (not (parse-feature-expression (second expr))))))
+    (symbol (find expr *features*))))
+
 (defun parse-dependency-form (dep)
   (etypecase dep
     (cons
      (string-downcase
       (ecase (first dep)
-        (:feature (parse-dependency-form (third dep)))
+        (:feature (if (parse-feature-expression (second dep))
+                      (parse-dependency-form (third dep))
+                      (return-from parse-dependency-form)))
         (:version (second dep))
         (:require (second dep)))))
     ((or string
@@ -108,8 +122,9 @@
                  (setf (gethash system-name appeared) t)
                  (cons system-name
                        (loop for dep in (direct-dependencies system-name)
-                             append (system-dependencies
-                                     (parse-dependency-form dep)))))))
+                             append (let ((depend-system (parse-dependency-form dep)))
+                                      (when depend-system
+                                        (system-dependencies depend-system))))))))
       (delete system-name
               (delete-duplicates (mapcar #'system-root-name (system-dependencies system-name))
                                  :test #'string=
