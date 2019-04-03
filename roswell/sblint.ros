@@ -35,11 +35,6 @@ Usage:
     $ sblint [directories or files...]"
    (asdf:component-version (asdf:find-system :sblint))))
 
-(defun stack ()
-  (loop for frame = (sb-di:frame-down (sb-di:top-frame)) then (sb-di:frame-down frame)
-        while frame
-        collect frame))
-
 (defun main (&rest argv)
   (when (or (equal (first argv) "-h")
             (equal (first argv) "--help"))
@@ -61,13 +56,7 @@ Usage:
       (let ((stream *error-output*))
         (handler-bind ((error
                          (lambda (e)
-                           (format stream "~&[ERROR] ~A: ~A~2%Backtraces:~%"
-                                   (type-of e)
-                                   e)
-                           (dolist (frame (stack))
-                             (format stream "~&  [~D] ~S~%"
-                                     (sb-di:frame-number frame)
-                                     (sb-di:debug-fun-name (sb-di:frame-debug-fun frame)))))))
+                           (uiop:print-condition-backtrace e :stream stream))))
           (handler-case
               (if (uiop:file-pathname-p target)
                   (run-lint-file target)
