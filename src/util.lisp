@@ -89,7 +89,7 @@
             (:and (notany #'null
                           (mapcar #'parse-feature-expression
                                   (cdr expr))))
-            (:or (notevery #'nullx
+            (:or (notevery #'null
                            (mapcar #'parse-feature-expression
                                    (cdr expr))))
             (:not (not (parse-feature-expression (second expr))))))
