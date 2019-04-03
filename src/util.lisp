@@ -86,10 +86,11 @@
 (defun parse-dependency-form (dep)
   (etypecase dep
     (cons
-     (ecase (first dep)
-       (:feature (parse-dependency-form (third dep)))
-       (:version (second dep))
-       (:require (second dep))))
+     (string-downcase
+      (ecase (first dep)
+        (:feature (parse-dependency-form (third dep)))
+        (:version (second dep))
+        (:require (second dep)))))
     ((or string
          symbol)
      (string-downcase dep))))
