@@ -137,7 +137,7 @@
   (let ((required-system-names (direct-dependencies system-name)))
     (when required-system-names
       (dolist (name required-system-names)
-        (let ((required (ql-dist:find-system name)))
+        (let ((required (ql-dist:find-system (parse-dependency-form name))))
           (when required
             (do-log :info "Installing '~A'" required)
             (with-muffled-streams
