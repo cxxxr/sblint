@@ -157,7 +157,8 @@
                        (or (not directory)
                            (and file
                                 (file-in-directory-p file directory)
-                                (not (file-in-directory-p file (merge-pathnames #P"quicklisp/" directory)))))
+                                (not (file-in-directory-p file (merge-pathnames #P"quicklisp/" directory)))
+                                (not (file-in-directory-p file (merge-pathnames #P".qlot/" directory)))))
                        (not (gethash (list file position (princ-to-string condition)) error-map)))
                   (setf (gethash (list file position (princ-to-string condition)) error-map) t)
                   (multiple-value-bind (line column)
@@ -183,7 +184,8 @@
                                          (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
                                        file)))
                              (and (file-in-directory-p real-file directory)
-                                  (not (file-in-directory-p real-file (merge-pathnames #P"quicklisp/" directory)))))))
+                                  (not (file-in-directory-p real-file (merge-pathnames #P"quicklisp/" directory)))
+                                  (not (file-in-directory-p real-file (merge-pathnames #P".qlot/" directory)))))))
                   (format *error-output*
                           "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
                           file
@@ -209,7 +211,8 @@
       (error "Directory does not exist: '~A'" directory))
 
     (dolist (dir (uiop:subdirectories directory))
-      (unless (equal (car (last (pathname-directory dir))) "quicklisp")
+      (unless (or (equal (car (last (pathname-directory dir))) "quicklisp")
+                  (equal (car (last (pathname-directory dir))) ".qlot"))
         (let ((*enable-logger* nil))
           (run-lint-directory dir stream))))
     (let ((asdf:*central-registry* (cons directory asdf:*central-registry*)))
