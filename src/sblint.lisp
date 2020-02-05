@@ -94,12 +94,15 @@
                                                 (uiop/lisp-build::compile-condition-context-arguments e)))
                          (warn "Compilation failed in a system ~S."
                                (asdf:component-name system))
-                         (ignore-and-continue e)))))
+                         (ignore-and-continue e))))
+                 (handle-compile-file-error (e)
+                   (handle-compile-error e)
+                   (return-from run-lint-asd)))
           (run-lint-fn (lambda ()
                          (do-log :info "Loading a system: ~A" (asdf:component-name system))
                          (handler-bind ((asdf:compile-error #'handle-compile-error)
                                         #+asdf3
-                                        (uiop:compile-file-error #'handle-compile-error)
+                                        (uiop:compile-file-error #'handle-compile-file-error)
                                         #+sbcl
                                         (sb-int:package-at-variance #'ignore-and-continue))
                            (with-muffled-streams
@@ -121,14 +124,16 @@
     (return-from run-lint-file
       (run-lint-asd file stream)))
 
-  (let ((err (make-broadcast-stream)))
-    (unless (run-lint-fn (lambda ()
-                           (load file :verbose nil :print nil))
-                         stream
-                         err)
-      (error 'sblint-compilation-error
-             :file file
-             :message (get-output-stream-string err)))))
+  (handler-case
+      (let ((err (make-broadcast-stream)))
+        (unless (run-lint-fn (lambda ()
+                               (load file :verbose nil :print nil))
+                             stream
+                             err)
+          (error 'sblint-compilation-error
+                 :file file
+                 :message (get-output-stream-string err))))
+    (sb-c::input-error-in-load ())))
 
 (defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
@@ -142,6 +147,7 @@
                                    (sb-c::compiler-error-context-file-name context))
                               *load-truename*
                               *compile-file-truename*))
+                    (input-error-in-compile-file-p nil)
                     (position (cond
                                 ((and (typep file '(or string pathname))
                                       context)
@@ -150,6 +156,19 @@
                                   (compiler-source-path context)))
                                 ((typep condition 'reader-error)
                                  (let ((stream (stream-error-stream condition)))
+                                   (file-position stream)))
+                                ((and (typep condition 'sb-c::encapsulated-condition)
+                                      (typep (sb-int:encapsulated-condition condition)
+                                             'sb-c::input-error-in-compile-file))
+                                 ;; reader-error in compile-file
+                                 (setq input-error-in-compile-file-p t)
+                                 (let ((stream (slot-value (sb-int:encapsulated-condition
+                                                            (sb-int:encapsulated-condition condition))
+                                                           'stream)))
+                                   (setq file
+                                         (SB-IMPL::FD-STREAM-FILE
+                                          (slot-value (slot-value (sb-int:encapsulated-condition condition) 'condition)
+                                                      'sb-int::stream)))
                                    (file-position stream)))
                                 (t nil))))
                (cond
@@ -173,9 +192,9 @@
                                   condition)
                         (sb-int:simple-stream-error () (continue))))))
                  ((and (not (typep condition '(or #+asdf3.3 asdf/operate:recursive-operate
-                                                  ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
-                                                  sb-kernel:redefinition-warning
-                                                  uiop:compile-warned-warning)))
+                                               ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
+                                               sb-kernel:redefinition-warning
+                                               uiop:compile-warned-warning)))
                        (or (null file)
                            (let ((real-file
                                    (if (file-in-directory-p file asdf:*user-cache*)
