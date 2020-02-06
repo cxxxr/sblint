@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:sblint/logger
   (:use #:cl)
   (:export #:*enable-logger*

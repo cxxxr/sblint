@@ -3,15 +3,9 @@
   :version "0.1.4"
   :author "Eitaro Fukamachi"
   :license "BSD 2-Clause"
-  :depends-on ("swank"
-               "uiop")
-  :components ((:module "src"
-                :components
-                ((:file "sblint" :depends-on ("file-location" "error" "logger" "util"))
-                 (:file "file-location")
-                 (:file "logger")
-                 (:file "error")
-                 (:file "util"))))
+  :class :package-inferred-system
+  :pathname "src"
+  :depends-on ("sblint/main")
   :description "A linter for Common Lisp source code using SBCL"
   :in-order-to ((test-op (test-op "sblint-test"))))
 #-sbcl

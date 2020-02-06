@@ -1,6 +1,6 @@
-(in-package #:cl-user)
-(defpackage #:sblint
+(defpackage #:sblint/main
   (:use #:cl)
+  (:nicknames #:sblint)
   (:import-from #:sblint/file-location
                 #:compiler-source-path
                 #:compiler-note-position
