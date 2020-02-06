@@ -1,8 +1,6 @@
-(in-package #:cl-user)
 (defpackage #:sblint/file-location
   (:use #:cl)
-  (:import-from #:swank/source-path-parser
-                #:source-path-file-position)
+  (:import-from #:swank)
   (:export #:compiler-source-path
            #:compiler-note-position
            #:file-position-to-line-and-column))

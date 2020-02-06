@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage sblint/error
   (:use #:cl)
   (:export #:sblint-error
