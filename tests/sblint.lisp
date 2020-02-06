@@ -37,30 +37,40 @@
 (defun test-pathname (base-filename)
   (asdf:system-relative-pathname :sblint-test base-filename))
 
-(defun run-lint-file-test (run-lint-fn base-filename expected-list)
+(defun preprocessing-expected-list (expected-list)
+  (mapcar (lambda (expected)
+            (apply #'make-result (append expected (list ""))))
+          expected-list))
+
+(defun run-lint-test (run-lint-fn base-filename expected-list)
   (let* ((text
            (with-output-to-string (*standard-output*)
              (funcall run-lint-fn
                       (test-pathname base-filename))))
-         (actual-list (parse-text text)))
-    (loop :for actual :in actual-list
-          :for expected :in expected-list
-          :do (ok (match actual (apply #'make-result (append expected (list ""))))))))
+         (actual-list (parse-text text))
+         (expected-list (preprocessing-expected-list expected-list)))
+    (ok (= (length actual-list) (length expected-list)))
+    (dolist (actual actual-list)
+      (if (some (lambda (expected)
+                  (match actual expected))
+                expected-list)
+          (pass (format nil "Expect ~S" actual))
+          (fail (format nil "actual: ~S~%expected-list: ~S" actual expected-list))))))
 
 (deftest simple-test
   (let ((file "tests/example/simple.lisp"))
-    (run-lint-file-test #'sblint:run-lint-file
-                        file
-                        `((,file "1" "0")
-                          (,file "4" "0")))))
+    (run-lint-test #'sblint:run-lint-file
+                   file
+                   `((,file "1" "0")
+                     (,file "4" "0")))))
 
 (deftest reader-error-in-compile-file-test
   (let ((file "tests/example/reader-error-case.lisp"))
-    (run-lint-file-test #'sblint:run-lint-file
-                        file
-                        `((,file "2" "9"))))
+    (run-lint-test #'sblint:run-lint-file
+                   file
+                   `((,file "2" "9"))))
   (let ((lisp-file "tests/example/foo/foo.lisp")
         (asd-file "tests/example/foo/foo.asd"))
-    (run-lint-file-test #'sblint:run-lint-asd
-                        asd-file
-                        `((,lisp-file "2" "4")))))
+    (run-lint-test #'sblint:run-lint-asd
+                   asd-file
+                   `((,lisp-file "2" "4")))))
