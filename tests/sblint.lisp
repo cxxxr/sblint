@@ -37,24 +37,30 @@
 (defun test-pathname (base-filename)
   (asdf:system-relative-pathname :sblint-test base-filename))
 
-(defun run-lint-file-test (base-filename expected-list)
+(defun run-lint-file-test (run-lint-fn base-filename expected-list)
   (let* ((text
            (with-output-to-string (*standard-output*)
-             (sblint:run-lint-file
-              (test-pathname base-filename))))
+             (funcall run-lint-fn
+                      (test-pathname base-filename))))
          (actual-list (parse-text text)))
     (loop :for actual :in actual-list
           :for expected :in expected-list
-          :do (ok (match actual (apply #'make-result
-                                       (append (list base-filename)
-                                               expected
-                                               (list ""))))))))
+          :do (ok (match actual (apply #'make-result (append expected (list ""))))))))
 
 (deftest simple-test
-  (run-lint-file-test "tests/example/simple.lisp"
-                      '(("1" "0")
-                        ("4" "0"))))
+  (let ((file "tests/example/simple.lisp"))
+    (run-lint-file-test #'sblint:run-lint-file
+                        file
+                        `((,file "1" "0")
+                          (,file "4" "0")))))
 
 (deftest reader-error-in-compile-file-test
-  (run-lint-file-test "tests/example/reader-error-case.lisp"
-                      '(("2" "9"))))
+  (let ((file "tests/example/reader-error-case.lisp"))
+    (run-lint-file-test #'sblint:run-lint-file
+                        file
+                        `((,file "2" "9"))))
+  (let ((lisp-file "tests/example/foo/foo.lisp")
+        (asd-file "tests/example/foo/foo.asd"))
+    (run-lint-file-test #'sblint:run-lint-asd
+                        asd-file
+                        `((,lisp-file "2" "4")))))

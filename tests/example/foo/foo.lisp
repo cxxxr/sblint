@@ -1,0 +1,2 @@
+(defun foo ()
+  a:b)
