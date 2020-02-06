@@ -1,0 +1,3 @@
+(defun foo ()
+  foo::bar)
+
