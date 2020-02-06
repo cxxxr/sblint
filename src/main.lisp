@@ -32,6 +32,18 @@
            #:*enable-logger*))
 (in-package #:sblint)
 
+(defparameter *quicklisp-directory-names*
+  '(".qlot" "quicklisp"))
+
+(defun in-quicklisp-directory-p (pathname)
+  (some (lambda (name)
+          (equal (car (last (pathname-directory pathname))) name))
+        *quicklisp-directory-names*))
+
+(defun file-in-directory-without-quicklisp-p (file directory)
+  (and (file-in-directory-p file directory)
+       (not (in-quicklisp-directory-p file))))
+
 (defun run-lint-asd (asd-file &optional (stream *standard-output*))
   (do-log :info "Lint system ~A" (make-relative-pathname asd-file))
 
@@ -175,9 +187,7 @@
                  ((and position
                        (or (not directory)
                            (and file
-                                (file-in-directory-p file directory)
-                                (not (file-in-directory-p file (merge-pathnames #P"quicklisp/" directory)))
-                                (not (file-in-directory-p file (merge-pathnames #P".qlot/" directory)))))
+                                (file-in-directory-without-quicklisp-p file directory)))
                        (not (gethash (list file position (princ-to-string condition)) error-map)))
                   (setf (gethash (list file position (princ-to-string condition)) error-map) t)
                   (multiple-value-bind (line column)
@@ -202,9 +212,7 @@
                                                (make-relative-pathname file asdf:*user-cache*)))
                                          (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
                                        file)))
-                             (and (file-in-directory-p real-file directory)
-                                  (not (file-in-directory-p real-file (merge-pathnames #P"quicklisp/" directory)))
-                                  (not (file-in-directory-p real-file (merge-pathnames #P".qlot/" directory)))))))
+                             (file-in-directory-without-quicklisp-p real-file directory))))
                   (format *error-output*
                           "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
                           file
@@ -230,8 +238,7 @@
       (error "Directory does not exist: '~A'" directory))
 
     (dolist (dir (uiop:subdirectories directory))
-      (unless (or (equal (car (last (pathname-directory dir))) "quicklisp")
-                  (equal (car (last (pathname-directory dir))) ".qlot"))
+      (unless (in-quicklisp-directory-p dir)
         (let ((*enable-logger* nil))
           (run-lint-directory dir stream))))
     (let ((asdf:*central-registry* (cons directory asdf:*central-registry*)))
