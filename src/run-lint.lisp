@@ -34,7 +34,7 @@
            #:*enable-logger*))
 (in-package #:sblint/run-lint)
 
-(defun file-in-directory-without-quicklisp-p (file directory)
+(defun file-in-directory-without-quicklisp-directory-p (file directory)
   (and (file-in-directory-p file directory)
        (not (in-quicklisp-directory-p file))))
 
@@ -218,7 +218,7 @@
   (and position
        (or (not directory)
            (and file
-                (file-in-directory-without-quicklisp-p file directory)))))
+                (file-in-directory-without-quicklisp-directory-p file directory)))))
 
 (defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
@@ -237,7 +237,7 @@
                           (print-note file position condition stream))))
                      ((and (not (typep condition 'ignorable-compiler-warning))
                            (or (null file)
-                               (file-in-directory-without-quicklisp-p (ensure-uncached-file file) directory)))
+                               (file-in-directory-without-quicklisp-directory-p (ensure-uncached-file file) directory)))
                       (format *error-output*
                               "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
                               file
