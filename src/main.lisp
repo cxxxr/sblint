@@ -192,6 +192,12 @@
                   condition)
         (sb-int:simple-stream-error () (continue))))))
 
+(deftype ignorable-compiler-warning ()
+  '(or #+asdf3.3 asdf/operate:recursive-operate
+    ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
+    sb-kernel:redefinition-warning
+    uiop:compile-warned-warning))
+
 (defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
          (*error-output* error)
@@ -209,10 +215,7 @@
                          (not (gethash (list file position (princ-to-string condition)) error-map)))
                     (setf (gethash (list file position (princ-to-string condition)) error-map) t)
                     (print-note file position condition stream))
-                   ((and (not (typep condition '(or #+asdf3.3 asdf/operate:recursive-operate
-                                                 ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
-                                                 sb-kernel:redefinition-warning
-                                                 uiop:compile-warned-warning)))
+                   ((and (not (typep condition 'ignorable-compiler-warning))
                          (or (null file)
                              (let ((real-file
                                      (if (file-in-directory-p file asdf:*user-cache*)
