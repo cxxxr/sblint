@@ -70,8 +70,7 @@
       (install-required-systems (pathname-name file))
 
       ;; Ensure dependencies are loaded
-      (let ((dependencies #+quicklisp (all-required-systems (asdf:component-name system))
-                          #-quicklisp (all-required-systems (asdf:component-name system))))
+      (let ((dependencies (all-required-systems (asdf:component-name system))))
         (when dependencies
           (do-log :info "Loading ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
             (length dependencies)
