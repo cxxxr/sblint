@@ -4,7 +4,6 @@
                 #:file-position-to-line-and-column)
   (:import-from #:sblint/utilities/pathname
                 #:file-in-directory-p
-                #:in-directories-p
                 #:make-relative-pathname)
   (:import-from #:sblint/utilities/streams
                 #:with-muffled-streams)
@@ -21,6 +20,7 @@
                 #:sblint-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/utilities/quicklisp
+                #:in-quicklisp-directory-p
                 #:install-required-systems)
   (:import-from #:uiop
                 #:file-exists-p
@@ -33,12 +33,6 @@
            #:sblint-error
            #:*enable-logger*))
 (in-package #:sblint/run-lint)
-
-(defparameter *quicklisp-directory-names*
-  '(".qlot" "quicklisp"))
-
-(defun in-quicklisp-directory-p (pathname)
-  (in-directories-p pathname *quicklisp-directory-names*))
 
 (defun file-in-directory-without-quicklisp-p (file directory)
   (and (file-in-directory-p file directory)

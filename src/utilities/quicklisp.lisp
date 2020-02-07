@@ -7,13 +7,22 @@
                 #:*logger-stream*)
   (:import-from #:sblint/utilities/streams
                 #:with-muffled-streams)
+  (:import-from #:sblint/utilities/pathname
+                #:in-directories-p)
   (:import-from #:sblint/utilities/asdf
                 #:direct-dependencies
                 #:all-required-systems
                 #:directory-asd-files
                 #:asdf-target-system-locator)
-  (:export #:install-required-systems))
+  (:export #:in-quicklisp-directory-p
+           #:install-required-systems))
 (in-package #:sblint/utilities/quicklisp)
+
+(defparameter *quicklisp-directory-names*
+  '(".qlot" "quicklisp"))
+
+(defun in-quicklisp-directory-p (pathname)
+  (in-directories-p pathname *quicklisp-directory-names*))
 
 (defun install-required-systems (system-name)
   #-quicklisp (declare (ignore system-name))
