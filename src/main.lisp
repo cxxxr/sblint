@@ -149,74 +149,79 @@
                  :message (get-output-stream-string err))))
     (sb-c::input-error-in-load ())))
 
+(defun get-location (condition)
+  (let* ((context (sb-c::find-error-context nil))
+         (file (or (and context
+                        (sb-c::compiler-error-context-file-name context))
+                   *load-truename*
+                   *compile-file-truename*))
+         (position (cond
+                     ((and (typep file '(or string pathname))
+                           context)
+                      (compiler-note-position
+                       file
+                       (compiler-source-path context)))
+                     ((typep condition 'reader-error)
+                      (let ((stream (stream-error-stream condition)))
+                        (file-position stream)))
+                     ((and (typep condition 'sb-c::encapsulated-condition)
+                           (typep (sb-int:encapsulated-condition condition)
+                                  'sb-c::input-error-in-compile-file))
+                      ;; reader-error in compile-file
+                      (let ((stream (slot-value (sb-int:encapsulated-condition
+                                                 (sb-int:encapsulated-condition condition))
+                                                'stream)))
+                        (setq file
+                              (SB-IMPL::FD-STREAM-FILE
+                               (slot-value (slot-value (sb-int:encapsulated-condition condition) 'condition)
+                                           'sb-int::stream)))
+                        (file-position stream)))
+                     (t nil))))
+    (values file position)))
+
 (defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
          (*error-output* error)
          (error-map (make-hash-table :test 'equalp)))
     (flet ((handle-condition (condition)
              (let* ((*error-output* errout)
-                    (sb-int:*print-condition-references* nil)
-                    (context (sb-c::find-error-context nil))
-                    (file (or (and context
-                                   (sb-c::compiler-error-context-file-name context))
-                              *load-truename*
-                              *compile-file-truename*))
-                    (position (cond
-                                ((and (typep file '(or string pathname))
-                                      context)
-                                 (compiler-note-position
-                                  file
-                                  (compiler-source-path context)))
-                                ((typep condition 'reader-error)
-                                 (let ((stream (stream-error-stream condition)))
-                                   (file-position stream)))
-                                ((and (typep condition 'sb-c::encapsulated-condition)
-                                      (typep (sb-int:encapsulated-condition condition)
-                                             'sb-c::input-error-in-compile-file))
-                                 ;; reader-error in compile-file
-                                 (let ((stream (slot-value (sb-int:encapsulated-condition
-                                                            (sb-int:encapsulated-condition condition))
-                                                           'stream)))
-                                   (setq file
-                                         (SB-IMPL::FD-STREAM-FILE
-                                          (slot-value (slot-value (sb-int:encapsulated-condition condition) 'condition)
-                                                      'sb-int::stream)))
-                                   (file-position stream)))
-                                (t nil))))
-               (cond
-                 ((and position
-                       (or (not directory)
-                           (and file
-                                (file-in-directory-without-quicklisp-p file directory)))
-                       (not (gethash (list file position (princ-to-string condition)) error-map)))
-                  (setf (gethash (list file position (princ-to-string condition)) error-map) t)
-                  (multiple-value-bind (line column)
-                      (file-position-to-line-and-column file position)
-                    (let ((*print-pretty* nil))
-                      (handler-case
-                          (format stream "~&~A:~A:~A: ~A: ~A~%"
-                                  (make-relative-pathname file)
-                                  line
-                                  column
-                                  (condition-name-to-print condition)
-                                  condition)
-                        (sb-int:simple-stream-error () (continue))))))
-                 ((and (not (typep condition '(or #+asdf3.3 asdf/operate:recursive-operate
-                                               ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
-                                               sb-kernel:redefinition-warning
-                                               uiop:compile-warned-warning)))
-                       (or (null file)
-                           (let ((real-file
-                                   (if (file-in-directory-p file asdf:*user-cache*)
-                                       (let ((tmp
-                                               (make-relative-pathname file asdf:*user-cache*)))
-                                         (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
-                                       file)))
-                             (file-in-directory-without-quicklisp-p real-file directory))))
-                  (format *error-output*
-                          "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
-                          file
-                          condition))))))
+                    (sb-int:*print-condition-references* nil))
+               (multiple-value-bind (file position)
+                   (get-location condition)
+                 (cond
+                   ((and position
+                         (or (not directory)
+                             (and file
+                                  (file-in-directory-without-quicklisp-p file directory)))
+                         (not (gethash (list file position (princ-to-string condition)) error-map)))
+                    (setf (gethash (list file position (princ-to-string condition)) error-map) t)
+                    (multiple-value-bind (line column)
+                        (file-position-to-line-and-column file position)
+                      (let ((*print-pretty* nil))
+                        (handler-case
+                            (format stream "~&~A:~A:~A: ~A: ~A~%"
+                                    (make-relative-pathname file)
+                                    line
+                                    column
+                                    (condition-name-to-print condition)
+                                    condition)
+                          (sb-int:simple-stream-error () (continue))))))
+                   ((and (not (typep condition '(or #+asdf3.3 asdf/operate:recursive-operate
+                                                 ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
+                                                 sb-kernel:redefinition-warning
+                                                 uiop:compile-warned-warning)))
+                         (or (null file)
+                             (let ((real-file
+                                     (if (file-in-directory-p file asdf:*user-cache*)
+                                         (let ((tmp
+                                                 (make-relative-pathname file asdf:*user-cache*)))
+                                           (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
+                                         file)))
+                               (file-in-directory-without-quicklisp-p real-file directory))))
+                    (format *error-output*
+                            "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
+                            file
+                            condition)))))))
       (handler-bind ((sb-c:fatal-compiler-error #'handle-condition)
                      (sb-c:compiler-error #'handle-condition)
                      ;; Ignore compiler-note for now.
