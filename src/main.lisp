@@ -198,6 +198,13 @@
     sb-kernel:redefinition-warning
     uiop:compile-warned-warning))
 
+(defun ensure-uncached-file (file)
+  (if (file-in-directory-p file asdf:*user-cache*)
+      (let ((tmp
+              (make-relative-pathname file asdf:*user-cache*)))
+        (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
+      file))
+
 (defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
          (*error-output* error)
@@ -217,13 +224,7 @@
                     (print-note file position condition stream))
                    ((and (not (typep condition 'ignorable-compiler-warning))
                          (or (null file)
-                             (let ((real-file
-                                     (if (file-in-directory-p file asdf:*user-cache*)
-                                         (let ((tmp
-                                                 (make-relative-pathname file asdf:*user-cache*)))
-                                           (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
-                                         file)))
-                               (file-in-directory-without-quicklisp-p real-file directory))))
+                             (file-in-directory-without-quicklisp-p (ensure-uncached-file file) directory)))
                     (format *error-output*
                             "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
                             file
