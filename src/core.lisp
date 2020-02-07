@@ -20,7 +20,7 @@
   (:import-from #:sblint/error
                 #:sblint-error
                 #:sblint-compilation-error)
-  (:import-from #:sblint/util
+  (:import-from #:sblint/utilities/quicklisp
                 #:install-required-systems)
   (:import-from #:uiop
                 #:file-exists-p

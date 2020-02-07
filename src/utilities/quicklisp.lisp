@@ -1,4 +1,4 @@
-(defpackage #:sblint/util
+(defpackage #:sblint/utilities/quicklisp
   (:use #:cl)
   (:import-from #:sblint/error
                 #:sblint-system-installation-error)
@@ -13,7 +13,7 @@
                 #:directory-asd-files
                 #:asdf-target-system-locator)
   (:export #:install-required-systems))
-(in-package #:sblint/util)
+(in-package #:sblint/utilities/quicklisp)
 
 (defun install-required-systems (system-name)
   #-quicklisp (declare (ignore system-name))
