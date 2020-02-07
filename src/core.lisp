@@ -1,8 +1,11 @@
 (defpackage #:sblint/core
   (:use #:cl)
-  (:import-from #:sblint/file-location
-                #:compiler-note-position
+  (:import-from #:sblint/utilities/file-position
                 #:file-position-to-line-and-column)
+  (:import-from #:sblint/utilities/pathname
+                #:file-in-directory-p)
+  (:import-from #:sblint/file-location
+                #:compiler-note-position)
   (:import-from #:sblint/logger
                 #:*enable-logger*
                 #:do-log)
@@ -15,8 +18,7 @@
                 #:install-required-systems
                 #:all-required-systems
                 #:directory-asd-files
-                #:asdf-target-system-locator
-                #:file-in-directory-p)
+                #:asdf-target-system-locator)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p

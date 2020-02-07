@@ -1,8 +1,7 @@
 (defpackage #:sblint/file-location
   (:use #:cl)
   (:import-from #:swank)
-  (:export #:compiler-note-position
-           #:file-position-to-line-and-column))
+  (:export #:compiler-note-position))
 (in-package #:sblint/file-location)
 
 (defun compiler-source-path (context)
@@ -22,17 +21,3 @@ compiler state."
          (position (swank/source-path-parser:source-path-file-position source-path file)))
     (when position
       (1+ position))))
-
-(defun file-position-to-line-and-column (file position)
-  (let ((line 1)
-        (column 0))
-    (with-open-file (in file :direction :input :element-type 'character)
-      (dotimes (i (1- position))
-        (let ((char (read-char in)))
-          (cond
-            ((char= char #\Newline)
-             (incf line)
-             (setf column 0))
-            ((char= char #\Return))
-            (t (incf column))))))
-    (values line column)))

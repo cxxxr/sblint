@@ -10,8 +10,7 @@
            #:all-required-systems
            #:install-required-systems
            #:directory-asd-files
-           #:asdf-target-system-locator
-           #:file-in-directory-p))
+           #:asdf-target-system-locator))
 (in-package #:sblint/util)
 
 (defmacro with-muffled-streams (&body body)
@@ -174,8 +173,3 @@
          (asdf:registered-system system-name)
          #-asdf3.3
          (cdr (asdf:system-registered-p system-name)))))
-
-(defun file-in-directory-p (file directory)
-  (eql 0 (search (pathname-directory directory)
-                 (pathname-directory file)
-                 :test #'equal)))
