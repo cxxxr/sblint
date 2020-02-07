@@ -6,7 +6,7 @@
                 #:file-in-directory-p
                 #:in-directories-p
                 #:make-relative-pathname)
-  (:import-from #:sblint/file-location
+  (:import-from #:sblint/utilities/compiler-aux
                 #:compiler-note-position)
   (:import-from #:sblint/logger
                 #:*enable-logger*

@@ -1,8 +1,8 @@
-(defpackage #:sblint/file-location
+(defpackage #:sblint/utilities/compiler-aux
   (:use #:cl)
   (:import-from #:swank)
   (:export #:compiler-note-position))
-(in-package #:sblint/file-location)
+(in-package #:sblint/utilities/compiler-aux)
 
 (defun compiler-source-path (context)
   "Return the source-path for the current compiler error.
