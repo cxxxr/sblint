@@ -44,6 +44,21 @@
   (and (file-in-directory-p file directory)
        (not (in-quicklisp-directory-p file))))
 
+(defun ensure-dependencies-are-loaded (system)
+  (let ((dependencies (all-required-systems (asdf:component-name system))))
+    (when dependencies
+      (do-log :info "Loading ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
+        (length dependencies)
+        dependencies)
+      (handler-bind ((warning #'muffle-warning))
+        #+quicklisp
+        (ql:quickload dependencies :silent t)
+        #-quicklisp
+        (mapc (lambda (name)
+                (with-muffled-streams
+                  (asdf:load-system name :verbose nil)))
+              dependencies)))))
+
 (defun run-lint-asd (asd-file &optional (stream *standard-output*))
   (do-log :info "Lint system ~A" (make-relative-pathname asd-file))
 
@@ -69,20 +84,7 @@
       #+quicklisp
       (install-required-systems (pathname-name file))
 
-      ;; Ensure dependencies are loaded
-      (let ((dependencies (all-required-systems (asdf:component-name system))))
-        (when dependencies
-          (do-log :info "Loading ~D ~:*system~[s~;~:;s~]:~%  ~{~A~^ ~}"
-            (length dependencies)
-            dependencies)
-          (handler-bind ((warning #'muffle-warning))
-            #+quicklisp
-            (ql:quickload dependencies :silent t)
-            #-quicklisp
-            (mapc (lambda (name)
-                    (with-muffled-streams
-                      (asdf:load-system name :verbose nil)))
-                  dependencies))))
+      (ensure-dependencies-are-loaded system)
 
       (let ((directory (make-pathname :defaults file
                                       :name nil
