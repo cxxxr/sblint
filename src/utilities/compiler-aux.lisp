@@ -1,8 +1,18 @@
 (defpackage #:sblint/utilities/compiler-aux
   (:use #:cl)
   (:import-from #:swank)
-  (:export #:compiler-note-position))
+  (:export #:ignorable-compiler-warning-p
+           #:compiler-note-position))
 (in-package #:sblint/utilities/compiler-aux)
+
+(deftype ignorable-compiler-warning ()
+  '(or #+asdf3.3 asdf/operate:recursive-operate
+    ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
+    sb-kernel:redefinition-warning
+    uiop:compile-warned-warning))
+
+(defun ignorable-compiler-warning-p (condition)
+  (typep condition 'ignorable-compiler-warning))
 
 (defun compiler-source-path (context)
   "Return the source-path for the current compiler error.

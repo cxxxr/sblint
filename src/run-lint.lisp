@@ -8,6 +8,7 @@
   (:import-from #:sblint/utilities/streams
                 #:with-muffled-streams)
   (:import-from #:sblint/utilities/compiler-aux
+                #:ignorable-compiler-warning-p
                 #:compiler-note-position)
   (:import-from #:sblint/utilities/logger
                 #:*enable-logger*
@@ -180,12 +181,6 @@
                   condition)
         (sb-int:simple-stream-error () (continue))))))
 
-(deftype ignorable-compiler-warning ()
-  '(or #+asdf3.3 asdf/operate:recursive-operate
-    ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
-    sb-kernel:redefinition-warning
-    uiop:compile-warned-warning))
-
 (defun call-with-handle-condition (handle-condition fn)
   (handler-bind ((sb-c:fatal-compiler-error handle-condition)
                  (sb-c:compiler-error handle-condition)
@@ -221,7 +216,7 @@
                         (unless (gethash key error-map)
                           (setf (gethash key error-map) t)
                           (print-note file position condition stream))))
-                     ((and (not (typep condition 'ignorable-compiler-warning))
+                     ((and (not (ignorable-compiler-warning-p condition))
                            (or (null file)
                                (file-in-directory-without-quicklisp-directory-p (ensure-uncached-file file) directory)))
                       (format *error-output*
