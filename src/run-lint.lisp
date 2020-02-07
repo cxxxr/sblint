@@ -16,7 +16,7 @@
                 #:all-required-systems
                 #:directory-asd-files
                 #:asdf-target-system-locator)
-  (:import-from #:sblint/error
+  (:import-from #:sblint/utilities/error
                 #:sblint-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/utilities/quicklisp

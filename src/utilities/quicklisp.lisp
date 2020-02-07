@@ -1,6 +1,6 @@
 (defpackage #:sblint/utilities/quicklisp
   (:use #:cl)
-  (:import-from #:sblint/error
+  (:import-from #:sblint/utilities/error
                 #:sblint-system-installation-error)
   (:import-from #:sblint/utilities/logger
                 #:do-log
