@@ -161,7 +161,6 @@
                                    (sb-c::compiler-error-context-file-name context))
                               *load-truename*
                               *compile-file-truename*))
-                    (input-error-in-compile-file-p nil)
                     (position (cond
                                 ((and (typep file '(or string pathname))
                                       context)
@@ -175,7 +174,6 @@
                                       (typep (sb-int:encapsulated-condition condition)
                                              'sb-c::input-error-in-compile-file))
                                  ;; reader-error in compile-file
-                                 (setq input-error-in-compile-file-p t)
                                  (let ((stream (slot-value (sb-int:encapsulated-condition
                                                             (sb-int:encapsulated-condition condition))
                                                            'stream)))
