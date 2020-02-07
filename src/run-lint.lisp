@@ -37,6 +37,98 @@
            #:*enable-logger*))
 (in-package #:sblint/run-lint)
 
+(defun get-location (condition)
+  (let* ((context (sb-c::find-error-context nil))
+         (file (or (and context
+                        (sb-c::compiler-error-context-file-name context))
+                   *load-truename*
+                   *compile-file-truename*))
+         (position (cond
+                     ((and (typep file '(or string pathname))
+                           context)
+                      (compiler-note-position file context))
+                     ((typep condition 'reader-error)
+                      (let ((stream (stream-error-stream condition)))
+                        (file-position stream)))
+                     ((and (typep condition 'sb-c::encapsulated-condition)
+                           (typep (sb-int:encapsulated-condition condition)
+                                  'sb-c::input-error-in-compile-file))
+                      ;; reader-error in compile-file
+                      (let ((stream (slot-value (sb-int:encapsulated-condition
+                                                 (sb-int:encapsulated-condition condition))
+                                                'stream)))
+                        (setq file
+                              (SB-IMPL::FD-STREAM-FILE
+                               (slot-value (slot-value (sb-int:encapsulated-condition condition) 'condition)
+                                           'sb-int::stream)))
+                        (file-position stream)))
+                     (t nil))))
+    (values file position)))
+
+(defun condition-name-to-print (condition)
+  (typecase condition
+    (style-warning
+     "style-warning")
+    (otherwise
+     (string-downcase (type-of condition)))))
+
+(defun print-note (file position condition stream)
+  (multiple-value-bind (line column)
+      (file-position-to-line-and-column file position)
+    (let ((*print-pretty* nil))
+      (handler-case
+          (format stream "~&~A:~A:~A: ~A: ~A~%"
+                  (make-relative-pathname file)
+                  line
+                  column
+                  (condition-name-to-print condition)
+                  condition)
+        (sb-int:simple-stream-error () (continue))))))
+
+(defun call-with-handle-condition (handle-condition fn)
+  (handler-bind ((sb-c:fatal-compiler-error handle-condition)
+                 (sb-c:compiler-error handle-condition)
+                 ;; Ignore compiler-note for now.
+                 ;; Perhaps those notes could be shown by some command-line option.
+                 ;; (sb-ext:compiler-note handle-condition)
+                 (error handle-condition)
+                 (warning handle-condition))
+    (funcall fn)))
+
+(defun file-in-directory-without-quicklisp-directory-p (file directory)
+  (and (file-in-directory-p file directory)
+       (not (in-quicklisp-directory-p file))))
+
+(defun printable-note-p (position file directory)
+  (and position
+       (or (not directory)
+           (and file
+                (file-in-directory-without-quicklisp-directory-p file directory)))))
+
+(defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
+  (let* ((errout *error-output*)
+         (*error-output* error)
+         (error-map (make-hash-table :test 'equalp)))
+    (labels ((handle-condition (condition)
+               (let* ((*error-output* errout)
+                      (sb-int:*print-condition-references* nil))
+                 (multiple-value-bind (file position)
+                     (get-location condition)
+                   (cond
+                     ((printable-note-p position file directory)
+                      (let ((key (list file position (princ-to-string condition))))
+                        (unless (gethash key error-map)
+                          (setf (gethash key error-map) t)
+                          (print-note file position condition stream))))
+                     ((and (not (ignorable-compiler-warning-p condition))
+                           (or (null file)
+                               (file-in-directory-without-quicklisp-directory-p (ensure-uncached-file file) directory)))
+                      (format *error-output*
+                              "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
+                              file
+                              condition)))))))
+      (call-with-handle-condition #'handle-condition fn))))
+
 (defun ensure-dependencies-are-loaded (system)
   (let ((dependencies (all-required-systems (asdf:component-name system))))
     (when dependencies
@@ -132,98 +224,6 @@
                  :file file
                  :message (get-output-stream-string err))))
     (sb-c::input-error-in-load ())))
-
-(defun get-location (condition)
-  (let* ((context (sb-c::find-error-context nil))
-         (file (or (and context
-                        (sb-c::compiler-error-context-file-name context))
-                   *load-truename*
-                   *compile-file-truename*))
-         (position (cond
-                     ((and (typep file '(or string pathname))
-                           context)
-                      (compiler-note-position file context))
-                     ((typep condition 'reader-error)
-                      (let ((stream (stream-error-stream condition)))
-                        (file-position stream)))
-                     ((and (typep condition 'sb-c::encapsulated-condition)
-                           (typep (sb-int:encapsulated-condition condition)
-                                  'sb-c::input-error-in-compile-file))
-                      ;; reader-error in compile-file
-                      (let ((stream (slot-value (sb-int:encapsulated-condition
-                                                 (sb-int:encapsulated-condition condition))
-                                                'stream)))
-                        (setq file
-                              (SB-IMPL::FD-STREAM-FILE
-                               (slot-value (slot-value (sb-int:encapsulated-condition condition) 'condition)
-                                           'sb-int::stream)))
-                        (file-position stream)))
-                     (t nil))))
-    (values file position)))
-
-(defun condition-name-to-print (condition)
-  (typecase condition
-    (style-warning
-     "style-warning")
-    (otherwise
-     (string-downcase (type-of condition)))))
-
-(defun print-note (file position condition stream)
-  (multiple-value-bind (line column)
-      (file-position-to-line-and-column file position)
-    (let ((*print-pretty* nil))
-      (handler-case
-          (format stream "~&~A:~A:~A: ~A: ~A~%"
-                  (make-relative-pathname file)
-                  line
-                  column
-                  (condition-name-to-print condition)
-                  condition)
-        (sb-int:simple-stream-error () (continue))))))
-
-(defun call-with-handle-condition (handle-condition fn)
-  (handler-bind ((sb-c:fatal-compiler-error handle-condition)
-                 (sb-c:compiler-error handle-condition)
-                 ;; Ignore compiler-note for now.
-                 ;; Perhaps those notes could be shown by some command-line option.
-                 ;; (sb-ext:compiler-note handle-condition)
-                 (error handle-condition)
-                 (warning handle-condition))
-    (funcall fn)))
-
-(defun file-in-directory-without-quicklisp-directory-p (file directory)
-  (and (file-in-directory-p file directory)
-       (not (in-quicklisp-directory-p file))))
-
-(defun printable-note-p (position file directory)
-  (and position
-       (or (not directory)
-           (and file
-                (file-in-directory-without-quicklisp-directory-p file directory)))))
-
-(defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
-  (let* ((errout *error-output*)
-         (*error-output* error)
-         (error-map (make-hash-table :test 'equalp)))
-    (labels ((handle-condition (condition)
-               (let* ((*error-output* errout)
-                      (sb-int:*print-condition-references* nil))
-                 (multiple-value-bind (file position)
-                     (get-location condition)
-                   (cond
-                     ((printable-note-p position file directory)
-                      (let ((key (list file position (princ-to-string condition))))
-                        (unless (gethash key error-map)
-                          (setf (gethash key error-map) t)
-                          (print-note file position condition stream))))
-                     ((and (not (ignorable-compiler-warning-p condition))
-                           (or (null file)
-                               (file-in-directory-without-quicklisp-directory-p (ensure-uncached-file file) directory)))
-                      (format *error-output*
-                              "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
-                              file
-                              condition)))))))
-      (call-with-handle-condition #'handle-condition fn))))
 
 (defvar *global-enable-logger*)
 (defun run-lint-directory (directory &optional (stream *standard-output*))
