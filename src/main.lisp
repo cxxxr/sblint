@@ -205,38 +205,45 @@
         (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
       file))
 
+(defun call-with-handle-condition (handle-condition fn)
+  (handler-bind ((sb-c:fatal-compiler-error handle-condition)
+                 (sb-c:compiler-error handle-condition)
+                 ;; Ignore compiler-note for now.
+                 ;; Perhaps those notes could be shown by some command-line option.
+                 ;; (sb-ext:compiler-note handle-condition)
+                 (error handle-condition)
+                 (warning handle-condition))
+    (funcall fn)))
+
+(defun printable-note-p (position file directory)
+  (and position
+       (or (not directory)
+           (and file
+                (file-in-directory-without-quicklisp-p file directory)))))
+
 (defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
          (*error-output* error)
          (error-map (make-hash-table :test 'equalp)))
-    (flet ((handle-condition (condition)
-             (let* ((*error-output* errout)
-                    (sb-int:*print-condition-references* nil))
-               (multiple-value-bind (file position)
-                   (get-location condition)
-                 (cond
-                   ((and position
-                         (or (not directory)
-                             (and file
-                                  (file-in-directory-without-quicklisp-p file directory)))
-                         (not (gethash (list file position (princ-to-string condition)) error-map)))
-                    (setf (gethash (list file position (princ-to-string condition)) error-map) t)
-                    (print-note file position condition stream))
-                   ((and (not (typep condition 'ignorable-compiler-warning))
-                         (or (null file)
-                             (file-in-directory-without-quicklisp-p (ensure-uncached-file file) directory)))
-                    (format *error-output*
-                            "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
-                            file
-                            condition)))))))
-      (handler-bind ((sb-c:fatal-compiler-error #'handle-condition)
-                     (sb-c:compiler-error #'handle-condition)
-                     ;; Ignore compiler-note for now.
-                     ;; Perhaps those notes could be shown by some command-line option.
-                     ;; (sb-ext:compiler-note #'handle-condition)
-                     (error #'handle-condition)
-                     (warning #'handle-condition))
-        (funcall fn)))))
+    (labels ((handle-condition (condition)
+               (let* ((*error-output* errout)
+                      (sb-int:*print-condition-references* nil))
+                 (multiple-value-bind (file position)
+                     (get-location condition)
+                   (cond
+                     ((printable-note-p position file directory)
+                      (let ((key (list file position (princ-to-string condition))))
+                        (unless (gethash key error-map)
+                          (setf (gethash key error-map) t)
+                          (print-note file position condition stream))))
+                     ((and (not (typep condition 'ignorable-compiler-warning))
+                           (or (null file)
+                               (file-in-directory-without-quicklisp-p (ensure-uncached-file file) directory)))
+                      (format *error-output*
+                              "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
+                              file
+                              condition)))))))
+      (call-with-handle-condition #'handle-condition fn))))
 
 (defvar *global-enable-logger*)
 (defun run-lint-directory (directory &optional (stream *standard-output*))
