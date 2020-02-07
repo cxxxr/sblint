@@ -8,7 +8,8 @@
            #:all-required-systems
            #:directory-asd-files
            #:asdf-target-system-locator
-           #:ensure-uncached-file))
+           #:ensure-uncached-file
+           #:find-system-from-pathname-name))
 (in-package #:sblint/utilities/asdf)
 
 (defun direct-dependencies (system-name)
@@ -113,3 +114,12 @@
               (make-relative-pathname file asdf:*user-cache*)))
         (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
       file))
+
+(defun find-system-from-pathname-name (file)
+  (let ((system (with-muffled-streams
+                  (asdf:find-system (pathname-name file) nil))))
+    (unless system
+      (error "System '~A' does not exist in '~A'."
+             (pathname-name file)
+             file))
+    system))

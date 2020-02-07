@@ -16,7 +16,8 @@
                 #:all-required-systems
                 #:directory-asd-files
                 #:asdf-target-system-locator
-                #:ensure-uncached-file)
+                #:ensure-uncached-file
+                #:find-system-from-pathname-name)
   (:import-from #:sblint/utilities/error
                 #:sblint-error
                 #:sblint-compilation-error)
@@ -53,15 +54,6 @@
                 (with-muffled-streams
                   (asdf:load-system name :verbose nil)))
               dependencies)))))
-
-(defun find-system-from-pathname-name (file)
-  (let ((system (with-muffled-streams
-                  (asdf:find-system (pathname-name file) nil))))
-    (unless system
-      (error "System '~A' does not exist in '~A'."
-             (pathname-name file)
-             file))
-    system))
 
 (defun run-lint-asd (asd-file &optional (stream *standard-output*))
   (do-log :info "Lint system ~A" (make-relative-pathname asd-file))
