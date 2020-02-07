@@ -13,14 +13,15 @@
   (:import-from #:sblint/utilities/logger
                 #:*enable-logger*
                 #:do-log)
+  (:import-from #:sblint/utilities/asdf
+                #:all-required-systems
+                #:directory-asd-files
+                #:asdf-target-system-locator)
   (:import-from #:sblint/error
                 #:sblint-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
-                #:install-required-systems
-                #:all-required-systems
-                #:directory-asd-files
-                #:asdf-target-system-locator)
+                #:install-required-systems)
   (:import-from #:uiop
                 #:file-exists-p
                 #:directory-exists-p
