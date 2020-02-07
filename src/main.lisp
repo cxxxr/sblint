@@ -179,6 +179,19 @@
                      (t nil))))
     (values file position)))
 
+(defun print-note (file position condition stream)
+  (multiple-value-bind (line column)
+      (file-position-to-line-and-column file position)
+    (let ((*print-pretty* nil))
+      (handler-case
+          (format stream "~&~A:~A:~A: ~A: ~A~%"
+                  (make-relative-pathname file)
+                  line
+                  column
+                  (condition-name-to-print condition)
+                  condition)
+        (sb-int:simple-stream-error () (continue))))))
+
 (defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
   (let* ((errout *error-output*)
          (*error-output* error)
@@ -195,17 +208,7 @@
                                   (file-in-directory-without-quicklisp-p file directory)))
                          (not (gethash (list file position (princ-to-string condition)) error-map)))
                     (setf (gethash (list file position (princ-to-string condition)) error-map) t)
-                    (multiple-value-bind (line column)
-                        (file-position-to-line-and-column file position)
-                      (let ((*print-pretty* nil))
-                        (handler-case
-                            (format stream "~&~A:~A:~A: ~A: ~A~%"
-                                    (make-relative-pathname file)
-                                    line
-                                    column
-                                    (condition-name-to-print condition)
-                                    condition)
-                          (sb-int:simple-stream-error () (continue))))))
+                    (print-note file position condition stream))
                    ((and (not (typep condition '(or #+asdf3.3 asdf/operate:recursive-operate
                                                  ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
                                                  sb-kernel:redefinition-warning
