@@ -1,9 +1,9 @@
-(defpackage #:sblint/logger
+(defpackage #:sblint/utilities/logger
   (:use #:cl)
   (:export #:*enable-logger*
            #:*logger-stream*
            #:do-log))
-(in-package #:sblint/logger)
+(in-package #:sblint/utilities/logger)
 
 (defvar *enable-logger* nil)
 (defvar *logger-stream* (make-synonym-stream '*error-output*))

@@ -2,7 +2,7 @@
   (:use #:cl)
   (:import-from #:sblint/error
                 #:sblint-system-installation-error)
-  (:import-from #:sblint/logger
+  (:import-from #:sblint/utilities/logger
                 #:do-log
                 #:*logger-stream*)
   (:export #:with-muffled-streams

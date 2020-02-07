@@ -8,7 +8,7 @@
                 #:make-relative-pathname)
   (:import-from #:sblint/utilities/compiler-aux
                 #:compiler-note-position)
-  (:import-from #:sblint/logger
+  (:import-from #:sblint/utilities/logger
                 #:*enable-logger*
                 #:do-log)
   (:import-from #:sblint/error
