@@ -131,7 +131,7 @@
               :test #'string=))))
 
 (defun install-required-systems (system-name)
-  (declare (ignorable system-name))
+  #-quicklisp (declare (ignore system-name))
   #+quicklisp
   (let ((required-system-names (direct-dependencies system-name)))
     (when required-system-names

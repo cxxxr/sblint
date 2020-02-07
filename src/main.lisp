@@ -80,10 +80,7 @@
                (pathname-name file)
                file))
 
-      ;; Ensure dependencies are installed
-      #+quicklisp
-      (install-required-systems (pathname-name file))
-
+      #+quicklisp (install-required-systems (pathname-name file))
       (ensure-dependencies-are-loaded system)
 
       (let ((directory (make-pathname :defaults file
