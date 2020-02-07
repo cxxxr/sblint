@@ -36,10 +36,6 @@
            #:*enable-logger*))
 (in-package #:sblint/run-lint)
 
-(defun file-in-directory-without-quicklisp-directory-p (file directory)
-  (and (file-in-directory-p file directory)
-       (not (in-quicklisp-directory-p file))))
-
 (defun ensure-dependencies-are-loaded (system)
   (let ((dependencies (all-required-systems (asdf:component-name system))))
     (when dependencies
@@ -199,6 +195,10 @@
                  (error handle-condition)
                  (warning handle-condition))
     (funcall fn)))
+
+(defun file-in-directory-without-quicklisp-directory-p (file directory)
+  (and (file-in-directory-p file directory)
+       (not (in-quicklisp-directory-p file))))
 
 (defun printable-note-p (position file directory)
   (and position
