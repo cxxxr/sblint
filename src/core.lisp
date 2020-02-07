@@ -3,7 +3,8 @@
   (:import-from #:sblint/utilities/file-position
                 #:file-position-to-line-and-column)
   (:import-from #:sblint/utilities/pathname
-                #:file-in-directory-p)
+                #:file-in-directory-p
+                #:in-directories-p)
   (:import-from #:sblint/file-location
                 #:compiler-note-position)
   (:import-from #:sblint/logger
@@ -35,9 +36,7 @@
   '(".qlot" "quicklisp"))
 
 (defun in-quicklisp-directory-p (pathname)
-  (some (lambda (name)
-          (equal (car (last (pathname-directory pathname))) name))
-        *quicklisp-directory-names*))
+  (in-directories-p pathname *quicklisp-directory-names*))
 
 (defun file-in-directory-without-quicklisp-p (file directory)
   (and (file-in-directory-p file directory)
