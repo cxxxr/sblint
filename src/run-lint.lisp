@@ -1,4 +1,4 @@
-(defpackage #:sblint/core
+(defpackage #:sblint/run-lint
   (:use #:cl)
   (:import-from #:sblint/utilities/file-position
                 #:file-position-to-line-and-column)
@@ -32,7 +32,7 @@
            #:run-lint-directory
            #:sblint-error
            #:*enable-logger*))
-(in-package #:sblint/core)
+(in-package #:sblint/run-lint)
 
 (defparameter *quicklisp-directory-names*
   '(".qlot" "quicklisp"))
