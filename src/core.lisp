@@ -6,6 +6,8 @@
                 #:file-in-directory-p
                 #:in-directories-p
                 #:make-relative-pathname)
+  (:import-from #:sblint/utilities/streams
+                #:with-muffled-streams)
   (:import-from #:sblint/utilities/compiler-aux
                 #:compiler-note-position)
   (:import-from #:sblint/utilities/logger
@@ -15,7 +17,6 @@
                 #:sblint-error
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
-                #:with-muffled-streams
                 #:install-required-systems
                 #:all-required-systems
                 #:directory-asd-files

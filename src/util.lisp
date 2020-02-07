@@ -5,19 +5,13 @@
   (:import-from #:sblint/utilities/logger
                 #:do-log
                 #:*logger-stream*)
-  (:export #:with-muffled-streams
-           #:all-required-systems
+  (:import-from #:sblint/utilities/streams
+                #:with-muffled-streams)
+  (:export #:all-required-systems
            #:install-required-systems
            #:directory-asd-files
            #:asdf-target-system-locator))
 (in-package #:sblint/util)
-
-(defmacro with-muffled-streams (&body body)
-  `(let ((*standard-output* (make-broadcast-stream))
-         (*error-output* (make-broadcast-stream))
-         (*terminal-io* (make-two-way-stream *standard-input* (make-broadcast-stream)))
-         (*logger-stream* *error-output*))
-     ,@body))
 
 (defun direct-dependencies (system-name)
   (let ((system (handler-bind ((asdf:bad-system-name #'muffle-warning))
