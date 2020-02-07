@@ -2,10 +2,13 @@
   (:use #:cl)
   (:import-from #:sblint/utilities/streams
                 #:with-muffled-streams)
+  (:import-from #:sblint/utilities/pathname
+                #:file-in-directory-p)
   (:export #:direct-dependencies
            #:all-required-systems
            #:directory-asd-files
-           #:asdf-target-system-locator))
+           #:asdf-target-system-locator
+           #:ensure-uncached-file))
 (in-package #:sblint/utilities/asdf)
 
 (defun direct-dependencies (system-name)
@@ -103,3 +106,10 @@
          (asdf:registered-system system-name)
          #-asdf3.3
          (cdr (asdf:system-registered-p system-name)))))
+
+(defun ensure-uncached-file (file)
+  (if (file-in-directory-p file asdf:*user-cache*)
+      (let ((tmp
+              (make-relative-pathname file asdf:*user-cache*)))
+        (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
+      file))

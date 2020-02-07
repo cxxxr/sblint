@@ -15,7 +15,8 @@
   (:import-from #:sblint/utilities/asdf
                 #:all-required-systems
                 #:directory-asd-files
-                #:asdf-target-system-locator)
+                #:asdf-target-system-locator
+                #:ensure-uncached-file)
   (:import-from #:sblint/utilities/error
                 #:sblint-error
                 #:sblint-compilation-error)
@@ -196,13 +197,6 @@
     ;; XXX: Actual redefinition should be warned, however it loads the same file twice when compile-time & load-time and it shows many redefinition warnings.
     sb-kernel:redefinition-warning
     uiop:compile-warned-warning))
-
-(defun ensure-uncached-file (file)
-  (if (file-in-directory-p file asdf:*user-cache*)
-      (let ((tmp
-              (make-relative-pathname file asdf:*user-cache*)))
-        (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
-      file))
 
 (defun call-with-handle-condition (handle-condition fn)
   (handler-bind ((sb-c:fatal-compiler-error handle-condition)
