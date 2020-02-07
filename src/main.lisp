@@ -59,6 +59,15 @@
                   (asdf:load-system name :verbose nil)))
               dependencies)))))
 
+(defun find-system-from-file (file)
+  (let ((system (with-muffled-streams
+                  (asdf:find-system (pathname-name file) nil))))
+    (unless system
+      (error "System '~A' does not exist in '~A'."
+             (pathname-name file)
+             file))
+    system))
+
 (defun run-lint-asd (asd-file &optional (stream *standard-output*))
   (do-log :info "Lint system ~A" (make-relative-pathname asd-file))
 
@@ -73,12 +82,7 @@
     (let* ((asdf:*system-definition-search-functions*
              (cons (asdf-target-system-locator (pathname-name file))
                    asdf:*system-definition-search-functions*))
-           (system (with-muffled-streams
-                     (asdf:find-system (pathname-name file) nil))))
-      (unless system
-        (error "System '~A' does not exist in '~A'."
-               (pathname-name file)
-               file))
+           (system (find-system-from-file file)))
 
       #+quicklisp (install-required-systems (pathname-name file))
       (ensure-dependencies-are-loaded system)
