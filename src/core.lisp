@@ -1,7 +1,6 @@
 (defpackage #:sblint/core
   (:use #:cl)
   (:import-from #:sblint/file-location
-                #:compiler-source-path
                 #:compiler-note-position
                 #:file-position-to-line-and-column)
   (:import-from #:sblint/logger
@@ -156,9 +155,7 @@
          (position (cond
                      ((and (typep file '(or string pathname))
                            context)
-                      (compiler-note-position
-                       file
-                       (compiler-source-path context)))
+                      (compiler-note-position file context))
                      ((typep condition 'reader-error)
                       (let ((stream (stream-error-stream condition)))
                         (file-position stream)))

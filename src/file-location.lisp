@@ -1,8 +1,7 @@
 (defpackage #:sblint/file-location
   (:use #:cl)
   (:import-from #:swank)
-  (:export #:compiler-source-path
-           #:compiler-note-position
+  (:export #:compiler-note-position
            #:file-position-to-line-and-column))
 (in-package #:sblint/file-location)
 
@@ -18,10 +17,11 @@ compiler state."
          (reverse
           (sb-c::compiler-error-context-original-source-path context)))))
 
-(defun compiler-note-position (file source-path)
-  (let ((position (swank/source-path-parser:source-path-file-position source-path file)))
-    (and position
-         (1+ position))))
+(defun compiler-note-position (file context)
+  (let* ((source-path (compiler-source-path context))
+         (position (swank/source-path-parser:source-path-file-position source-path file)))
+    (when position
+      (1+ position))))
 
 (defun file-position-to-line-and-column (file position)
   (let ((line 1)
