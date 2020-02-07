@@ -4,7 +4,8 @@
                 #:file-position-to-line-and-column)
   (:import-from #:sblint/utilities/pathname
                 #:file-in-directory-p
-                #:in-directories-p)
+                #:in-directories-p
+                #:make-relative-pathname)
   (:import-from #:sblint/file-location
                 #:compiler-note-position)
   (:import-from #:sblint/logger
@@ -15,7 +16,6 @@
                 #:sblint-compilation-error)
   (:import-from #:sblint/util
                 #:with-muffled-streams
-                #:make-relative-pathname
                 #:install-required-systems
                 #:all-required-systems
                 #:directory-asd-files
