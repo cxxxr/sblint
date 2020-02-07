@@ -42,14 +42,15 @@
             (apply #'make-result (append expected (list ""))))
           expected-list))
 
-(defun run-lint-test (run-lint-fn base-filename expected-list)
+(defun run-lint-test (run-lint-fn base-filename expected-list &optional (check-actual-and-expected-count t))
   (let* ((text
            (with-output-to-string (*standard-output*)
              (funcall run-lint-fn
                       (test-pathname base-filename))))
          (actual-list (parse-text text))
          (expected-list (preprocessing-expected-list expected-list)))
-    ;; (ok (= (length actual-list) (length expected-list)))
+    (when check-actual-and-expected-count
+      (ok (= (length actual-list) (length expected-list))))
     (dolist (actual actual-list)
       (if (some (lambda (expected)
                   (match actual expected))
@@ -62,7 +63,8 @@
     (run-lint-test #'sblint:run-lint-file
                    file
                    `((,file "1" "0")
-                     (,file "4" "0")))))
+                     (,file "4" "0"))
+                   nil)))
 
 (deftest reader-error-in-compile-file-test
   (let ((file "tests/example/reader-error-case.lisp"))
@@ -74,3 +76,8 @@
     (run-lint-test #'sblint:run-lint-asd
                    asd-file
                    `((,lisp-file "2" "4")))))
+
+(deftest ignore-qlot-directory-test
+  (run-lint-test #'sblint:run-lint-directory
+                 "tests/example/run-lint-directory-other-than-qlot-dir-example/"
+                 '(("tests/example/run-lint-directory-other-than-qlot-dir-example/run-lint-directory-other-than-qlot-dir-example.lisp" "5" "0"))))
