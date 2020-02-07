@@ -13,7 +13,6 @@
   (:import-from #:sblint/util
                 #:with-muffled-streams
                 #:make-relative-pathname
-                #:condition-name-to-print
                 #:install-required-systems
                 #:all-required-systems
                 #:directory-asd-files
@@ -177,6 +176,13 @@
                         (file-position stream)))
                      (t nil))))
     (values file position)))
+
+(defun condition-name-to-print (condition)
+  (typecase condition
+    (style-warning
+     "style-warning")
+    (otherwise
+     (string-downcase (type-of condition)))))
 
 (defun print-note (file position condition stream)
   (multiple-value-bind (line column)

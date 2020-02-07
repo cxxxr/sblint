@@ -7,7 +7,6 @@
                 #:*logger-stream*)
   (:export #:with-muffled-streams
            #:make-relative-pathname
-           #:condition-name-to-print
            #:all-required-systems
            #:install-required-systems
            #:directory-asd-files
@@ -64,13 +63,6 @@
                                    :directory
                                    (cons :relative
                                          (make-list (length base-dir) :initial-element :up))))))))))
-
-(defun condition-name-to-print (condition)
-  (typecase condition
-    (style-warning
-     "style-warning")
-    (otherwise
-     (string-downcase (type-of condition)))))
 
 (defun direct-dependencies (system-name)
   (let ((system (handler-bind ((asdf:bad-system-name #'muffle-warning))
