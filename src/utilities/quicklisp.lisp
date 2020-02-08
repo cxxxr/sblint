@@ -11,6 +11,7 @@
                 #:in-directories-p)
   (:import-from #:sblint/utilities/asdf
                 #:direct-dependencies
+                #:parse-dependency-form
                 #:all-required-systems
                 #:directory-asd-files
                 #:asdf-target-system-locator)

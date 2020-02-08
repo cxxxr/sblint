@@ -122,6 +122,7 @@
                           (print-note file position condition stream))))
                      ((and (not (ignorable-compiler-warning-p condition))
                            (or (null file)
+                               (null directory)
                                (file-in-directory-without-quicklisp-directory-p (ensure-uncached-file file) directory)))
                       (format *error-output*
                               "~&WARNING~@[ while loading '~A'~]:~% ~A~%"

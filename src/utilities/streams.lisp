@@ -1,6 +1,7 @@
 (defpackage #:sblint/utilities/streams
   (:use #:cl)
-  (:import-from #:sblint/utilities/logger)
+  (:import-from #:sblint/utilities/logger
+                #:*logger-stream*)
   (:export #:with-muffled-streams))
 (in-package #:sblint/utilities/streams)
 

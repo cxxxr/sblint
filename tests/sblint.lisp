@@ -81,3 +81,13 @@
   (run-lint-test #'sblint:run-lint-directory
                  "tests/example/run-lint-directory-other-than-qlot-dir-example/"
                  '(("tests/example/run-lint-directory-other-than-qlot-dir-example/run-lint-directory-other-than-qlot-dir-example.lisp" "5" "0"))))
+
+(deftest self-check
+  (handler-case (progn
+                  (sblint:run-lint-file (probe-file (asdf:system-relative-pathname :sblint "sblint.asd")))
+                  (pass "success self check"))
+    (error (e)
+      (fail (with-output-to-string (out)
+              (format out "self check error: ~A" e)
+              (uiop:print-backtrace :condition e :stream out)))
+      e)))

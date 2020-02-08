@@ -3,8 +3,10 @@
   (:import-from #:sblint/utilities/streams
                 #:with-muffled-streams)
   (:import-from #:sblint/utilities/pathname
-                #:file-in-directory-p)
+                #:file-in-directory-p
+                #:make-relative-pathname)
   (:export #:direct-dependencies
+           #:parse-dependency-form
            #:all-required-systems
            #:directory-asd-files
            #:asdf-target-system-locator
@@ -110,8 +112,7 @@
 
 (defun ensure-uncached-file (file)
   (if (file-in-directory-p file asdf:*user-cache*)
-      (let ((tmp
-              (make-relative-pathname file asdf:*user-cache*)))
+      (let ((tmp (make-relative-pathname file asdf:*user-cache*)))
         (make-pathname :defaults file :directory (cons :absolute (cdr (pathname-directory tmp)))))
       file))
 
