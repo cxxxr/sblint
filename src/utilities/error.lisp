@@ -1,10 +1,10 @@
-(defpackage sblint/error
+(defpackage sblint/utilities/error
   (:use #:cl)
   (:export #:sblint-error
            #:sblint-system-load-error
            #:sblint-compilation-error
            #:sblint-system-installation-error))
-(in-package #:sblint/error)
+(in-package #:sblint/utilities/error)
 
 (define-condition sblint-error (error) ())
 
