@@ -197,7 +197,7 @@
                                         #+sbcl
                                         (sb-int:package-at-variance #'ignore-and-continue))
                            (with-muffled-streams
-                             (asdf:load-system system)))
+                             (asdf:load-system system :force t)))
                          (do-log :info "Done"))
                        stream
                        *error-output*
