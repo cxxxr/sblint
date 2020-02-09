@@ -7,6 +7,6 @@
   :pathname "src"
   :depends-on ("sblint/main")
   :description "A linter for Common Lisp source code using SBCL"
-  :in-order-to ((test-op (test-op "sblint-test"))))
+  :in-order-to ((test-op (test-op "sblint-tests"))))
 #-sbcl
 (error "SBLint requires SBCL")

@@ -1,6 +1,6 @@
-(defpackage #:sblint-test/sblint
+(defpackage #:sblint/tests/main
   (:use #:cl #:rove))
-(in-package #:sblint-test/sblint)
+(in-package #:sblint/tests/main)
 
 (defstruct (result (:constructor make-result (file line-number column message)))
   file
@@ -35,7 +35,7 @@
                #'result-column)))
 
 (defun test-pathname (base-filename)
-  (asdf:system-relative-pathname :sblint-test base-filename))
+  (asdf:system-relative-pathname :sblint-tests base-filename))
 
 (defun preprocessing-expected-list (expected-list)
   (mapcar (lambda (expected)
