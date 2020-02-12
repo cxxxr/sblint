@@ -8,6 +8,7 @@
   (:export #:direct-dependencies
            #:parse-dependency-form
            #:all-required-systems
+           #:all-project-pathnames-for-package-inferred-system
            #:directory-asd-files
            #:asdf-target-system-locator
            #:ensure-uncached-file
@@ -50,12 +51,15 @@
          symbol)
      (string-downcase dep))))
 
+(defun starts-with-subseq (prefix string)
+  (and (<= (length prefix) (length string))
+       (string= string prefix :end1 (length prefix))))
+
 (defun all-required-systems (system-name)
   (let ((appeared (make-hash-table :test 'equal)))
     (labels ((sbcl-contrib-p (name)
                (declare (type simple-string name))
-               (and (<= 3 (length name))
-                    (string-equal name "sb-" :end1 3)))
+               (starts-with-subseq "sb-" name))
              (system-dependencies (system-name)
                (unless (or (string-equal system-name "asdf")
                            (sbcl-contrib-p system-name)
@@ -71,6 +75,26 @@
                                  :test #'string=
                                  :from-end t)
               :test #'string=))))
+
+(defun all-project-pathnames-for-package-inferred-system (root-system-name)
+  (let ((appeared (make-hash-table :test 'equal))
+        (pathnames-so-far '()))
+    (labels ((system-name-to-pathname (system-name)
+               (asdf:system-relative-pathname
+                root-system-name
+                (format nil
+                        "~A.lisp"
+                        (subseq system-name (1+ (length root-system-name))))))
+             (f (system-name)
+               (unless (gethash system-name appeared)
+                 (setf (gethash system-name appeared) t)
+                 (when (starts-with-subseq root-system-name system-name)
+                   (unless (equal root-system-name system-name)
+                     (push (system-name-to-pathname system-name) pathnames-so-far))
+                   (dolist (dependent-system (direct-dependencies system-name))
+                     (f dependent-system))))))
+      (f root-system-name)
+      pathnames-so-far)))
 
 (defun directory-asd-files (&optional (directory *default-pathname-defaults*))
   "List ASD files in the DIRECTORY and sort them to load."
