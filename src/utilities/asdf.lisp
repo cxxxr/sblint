@@ -77,6 +77,9 @@
               :test #'string=))))
 
 (defun all-project-pathnames-for-package-inferred-system (root-system-name)
+  (typecase root-system-name
+    (string)
+    (symbol (setf root-system-name (string-downcase root-system-name))))
   (let ((appeared (make-hash-table :test 'equal))
         (pathnames-so-far '()))
     (labels ((system-name-to-pathname (system-name)
