@@ -24,7 +24,7 @@ $ ros use sbcl
 ```
 
 ```
-$ ros install fukamachi/sblint
+$ ros install cxxxr/sblint
 ```
 
 ## Using with reviewdog
