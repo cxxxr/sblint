@@ -37,6 +37,7 @@
            #:*enable-logger*))
 (in-package #:sblint/run-lint)
 
+
 (defun get-location (condition)
   (let* ((context (sb-c::find-error-context nil))
          (file (or (and context
@@ -105,10 +106,22 @@
            (and file
                 (file-in-directory-without-quicklisp-directory-p file directory)))))
 
-(defun run-lint-fn (fn &optional (stream *standard-output*) (error *error-output*) directory)
+
+(defun make-error-map ()
+  (make-hash-table :test 'equalp))
+
+
+(defun num-errors (error-map)
+  (hash-table-count error-map))
+
+
+(defun run-lint-fn (fn &optional (stream *standard-output*)
+                                 (error *error-output*)
+                                 directory
+                                 (error-map (make-error-map)))
+  "Returns a number of errors collected during runing the function."
   (let* ((errout *error-output*)
-         (*error-output* error)
-         (error-map (make-hash-table :test 'equalp)))
+         (*error-output* error))
     (labels ((handle-condition (condition)
                (let* ((*error-output* errout)
                       (sb-int:*print-condition-references* nil))
@@ -128,7 +141,8 @@
                               "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
                               file
                               condition)))))))
-      (call-with-handle-condition #'handle-condition fn))))
+      (call-with-handle-condition #'handle-condition fn)
+      (num-errors error-map))))
 
 (defun ensure-dependencies-are-loaded (system)
   (let ((dependencies (all-required-systems (asdf:component-name system))))
@@ -159,7 +173,12 @@
     (let* ((asdf:*system-definition-search-functions*
              (cons (asdf-target-system-locator (pathname-name file))
                    asdf:*system-definition-search-functions*))
-           (system (find-system-from-pathname-name file)))
+           (system (find-system-from-pathname-name file))
+           ;; Here we'll count errors.
+           ;; We need it because run-lit-fn may signal error
+           ;; and without error-map we'll never know how many
+           ;; errors were there.
+           (error-map (make-error-map)))
 
       #+quicklisp (install-required-systems (pathname-name file))
       (ensure-dependencies-are-loaded system)
@@ -188,7 +207,8 @@
                          (ignore-and-continue e))))
                  (handle-compile-file-error (e)
                    (handle-compile-error e)
-                   (return-from run-lint-asd)))
+                   (return-from run-lint-asd
+                     (num-errors error-map))))
           (run-lint-fn (lambda ()
                          (do-log :info "Loading a system: ~A" (asdf:component-name system))
                          (handler-bind ((asdf:compile-error #'handle-compile-error)
@@ -201,11 +221,11 @@
                          (do-log :info "Done"))
                        stream
                        *error-output*
-                       directory))))
-
-    (values)))
+                       directory
+                       error-map))))))
 
 (defun run-lint-file (file &optional (stream *standard-output*))
+  "Returns a number of errors in the given file or ASDF system"
   (do-log :info "Lint file ~A" (make-relative-pathname file))
 
   (unless (uiop:file-exists-p file)
@@ -216,22 +236,29 @@
       (run-lint-asd file stream)))
 
   (handler-case
-      (let ((err (make-broadcast-stream)))
-        (unless (run-lint-fn (lambda ()
-                               (load file :verbose nil :print nil))
-                             stream
-                             err)
+      (let* ((err (make-broadcast-stream))
+             (num-errors (run-lint-fn
+                          (lambda ()
+                            (load file :verbose nil :print nil))
+                          stream
+                          err)))
+        (unless (zerop num-errors)
           (error 'sblint-compilation-error
                  :file file
-                 :message (get-output-stream-string err))))
-    (sb-c::input-error-in-load ())))
+                 :message (get-output-stream-string err)))
+        (values num-errors))
+    (sb-c::input-error-in-load ()
+      (return-from run-lint-file
+        1))))
 
 (defvar *global-enable-logger*)
 (defun run-lint-directory (directory &optional (stream *standard-output*))
+  "Returns a number of errors in the given directory."
   (let ((*global-enable-logger*
           (if (boundp '*global-enable-logger*)
               *global-enable-logger*
-              *enable-logger*)))
+              *enable-logger*))
+        (num-errors 0))
     (do-log :info "Lint directory '~A'" (make-relative-pathname directory))
 
     (unless (uiop:directory-exists-p directory)
@@ -240,10 +267,13 @@
     (dolist (dir (uiop:subdirectories directory))
       (unless (in-quicklisp-directory-p dir)
         (let ((*enable-logger* nil))
-          (run-lint-directory dir stream))))
+          (incf num-errors
+                (run-lint-directory dir stream)))))
+    
     (let ((asdf:*central-registry* (cons directory asdf:*central-registry*)))
       (let ((*enable-logger* *global-enable-logger*))
         (dolist (file (directory-asd-files directory))
-          (run-lint-file file stream)))))
+          (incf num-errors
+                (run-lint-file file stream)))))
 
-  (values))
+    (values num-errors)))
