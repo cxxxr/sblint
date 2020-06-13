@@ -7,7 +7,9 @@ if [ -z "$(which sblint)" ]; then
     exit 0
 fi
 
-error_count=$(sblint | wc -l | tr -d '[[:space:]]')
+sblint
+
+error_count=$?
 
 if [ "$error_count" -gt "0" ]; then
     echo "Failed to commit because $error_count errors are found by SBLint."

@@ -61,9 +61,10 @@ Options:
                          (lambda (e)
                            (uiop:print-condition-backtrace e :stream stream))))
           (handler-case
-              (if (uiop:file-pathname-p target)
-                  (run-lint-file target)
-                  (run-lint-directory target))
+              (uiop:quit
+                (if (uiop:file-pathname-p target)
+                    (run-lint-file target)
+                    (run-lint-directory target)))
             (sblint:sblint-error (e)
               (print-error "~A" e))))))))
 
