@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Roswell
+      env:
+        LISP: ${{ matrix.lisp }}
+      run: |
+        curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
+    - name: Run test
+      run: |
+        export PATH=$HOME/.roswell/bin:$PATH
+        ros -s sblint -s rove -e '(uiop:quit (if (rove:run :sblint-tests) 0 1))'
