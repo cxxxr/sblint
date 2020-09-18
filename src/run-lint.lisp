@@ -136,7 +136,9 @@
                      ((and (not (ignorable-compiler-warning-p condition))
                            (or (null file)
                                (null directory)
-                               (file-in-directory-without-quicklisp-directory-p (ensure-uncached-file file) directory)))
+                               (file-in-directory-without-quicklisp-directory-p
+                                (ensure-uncached-file file)
+                                directory)))
                       (format *error-output*
                               "~&WARNING~@[ while loading '~A'~]:~% ~A~%"
                               file
