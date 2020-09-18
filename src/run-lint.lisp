@@ -244,10 +244,6 @@
                             (load file :verbose nil :print nil))
                           stream
                           err)))
-        (unless (zerop num-errors)
-          (error 'sblint-compilation-error
-                 :file file
-                 :message (get-output-stream-string err)))
         (values num-errors))
     (sb-c::input-error-in-load ()
       (return-from run-lint-file
